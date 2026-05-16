@@ -1,1 +1,166 @@
-@AGENTS.md
+# MySwarms
+
+> Projet créé via `/setup-adrien`. Stack : Next.js 16 (App Router) + TypeScript + Tailwind 4. Région Supabase : `eu-west-1`.
+
+## Langue & mode
+- Toutes les réponses en **français**.
+- Mode **autonomie totale** : tu exécutes, tu ne demandes pas confirmation pour chaque étape.
+
+## Stack
+- **Web** : Next.js 16 (App Router, src/) + React 19 + Tailwind 4 — port `3000`
+- **API/Backend** : routes Next.js (`src/app/api/...`) — fallback port `3001` si extraction
+- **DB** : Supabase Postgres 17 — projet ref `fxeibmjebvxtoazuyyvz`
+- **Cache/Queue** : Upstash Redis REST (fallback — Railway Redis non provisionné, CLI v4.36 bug)
+- **Hosting** : Vercel (`hearst-corporation/myswarms`, projet `prj_D7svFbXovy2hni4hAPyN2AJI5Lnq`) + Railway (`693c476c-3d0c-4213-8088-63018863fa5d`)
+
+## ⚡ MCP Supabase — règle absolue
+
+Tu as accès au **MCP Supabase** dans cette session. Pour TOUTE opération DB, tu utilises le MCP **sans jamais demander confirmation à Adrien** :
+
+| Opération | Tool MCP | Quand |
+|---|---|---|
+| Lister projets / orgs | `mcp__supabase__list_projects` / `list_organizations` | Au début si tu doutes |
+| Lister tables | `mcp__supabase__list_tables` | Avant tout schema change |
+| **Appliquer migration SQL** | `mcp__supabase__apply_migration` | À chaque DDL (create table, alter, etc.) |
+| Exécuter une query | `mcp__supabase__execute_sql` | Lectures / data fixes |
+| Générer types TS | `mcp__supabase__generate_typescript_types` | Après chaque migration |
+| Logs en cas de bug | `mcp__supabase__get_logs` | Debug |
+| Advisors (sécurité/perf) | `mcp__supabase__get_advisors` | Avant prod |
+
+**Règles** :
+- Tu N'utilises JAMAIS `supabase db push` (interactif, risque de prompt).
+- Tu utilises **toujours** `mcp__supabase__apply_migration` avec le nom de migration en `snake_case`.
+- Tu versionnes en parallèle dans [supabase/migrations/NNNN_nom.sql](supabase/migrations/) pour le repo.
+- Si une migration a échoué, tu lis `mcp__supabase__get_logs(service="postgres")` et tu corriges, **sans demander**.
+
+`project_id = fxeibmjebvxtoazuyyvz` — passe-le systématiquement aux tools MCP.
+
+Dashboard : https://app.supabase.com/project/fxeibmjebvxtoazuyyvz
+
+## 🖥️ Infra GPU (gpu1 + gpu2)
+
+Adrien dispose de 2 serveurs GPU + 1 Windows farm accessibles via Tailscale et LAN.
+
+| Serveur | LAN | Tailscale | Aliases SSH | Services exposés |
+|---|---|---|---|---|
+| **GPU1** | `192.168.1.200` | `100.88.191.49` | `gpu1`, `gpu1-ts`, `ubuntu-comput3` | (workhorse secondaire) |
+| **GPU2** | `192.168.1.150` | `100.110.74.114` | `gpu2`, `gpu2-remote` | ComfyUI :8188 · InvokeAI :9090 |
+| **Windows farm** | `192.168.1.14` | — | `windows-farm`, `farm-pc` | Windows-only tasks |
+
+### Pattern de connexion pour ce projet
+
+Si MySwarms a besoin de GPU (génération d'image/vidéo, training, inférence locale) :
+
+```bash
+ssh -L 8188:localhost:8188 gpu2-remote -N &  # ComfyUI
+ssh -L 9090:localhost:9090 gpu2-remote -N &  # InvokeAI
+```
+
+Variables d'env attendues (déjà dans `.env.local`) :
+```
+COMFY_BASE=http://127.0.0.1:8188
+STUDIO_INVOKE_BACKEND=http://127.0.0.1:9090
+STUDIO_SSH_HOST=gpu2-remote
+```
+
+Doc complète : [docs/api-config/SERVICES.md](docs/api-config/SERVICES.md) section 11b.
+
+## 🤖 Stack LLM — règle absolue
+
+MySwarms a **3 providers LLM configurés** dans `.env.local`. Tout agent LLM DOIT utiliser ces credentials.
+
+| Provider | Variable env | Usage par défaut | SDK |
+|---|---|---|---|
+| **Claude (Anthropic)** | `ANTHROPIC_API_KEY` | LLM principal — chat, orchestration, agents | `@anthropic-ai/sdk` |
+| **OpenAI** | `OPENAI_API_KEY` | Embeddings (`text-embedding-3-small`), fallback chat | `openai` |
+| **Hypercli (Kimi K2.6)** | `HYPERCLI_API_KEY` + `HYPERCLI_BASE_URL` | Modèle alternatif open-source — coding/agents, contexte 256k | `openai` ou `@anthropic-ai/sdk` (drop-in) |
+
+### Hypercli — drop-in obligatoire
+
+L'API Hypercli est **OpenAI et Anthropic compatible**. Aucun SDK custom. Réutiliser les SDK existants en changeant juste `baseURL` :
+
+**OpenAI-style (chat completions)** :
+
+```typescript
+// src/lib/llm/kimi.ts
+import OpenAI from "openai";
+
+export const kimi = new OpenAI({
+  apiKey: process.env.HYPERCLI_API_KEY!,
+  baseURL: process.env.HYPERCLI_BASE_URL!, // https://api.hypercli.com/v1
+});
+
+const response = await kimi.chat.completions.create({
+  model: process.env.HYPERCLI_DEFAULT_MODEL!, // kimi-k2.6
+  messages: [{ role: "user", content: "..." }],
+});
+```
+
+**Anthropic-style (messages API)** :
+
+```typescript
+// src/lib/llm/kimi-anthropic.ts
+import Anthropic from "@anthropic-ai/sdk";
+
+export const kimiAnthropic = new Anthropic({
+  apiKey: process.env.HYPERCLI_API_KEY!,
+  baseURL: process.env.HYPERCLI_BASE_URL!,
+});
+
+const response = await kimiAnthropic.messages.create({
+  model: process.env.HYPERCLI_ANTHROPIC_MODEL!, // kimi-k2.6-anthropic
+  max_tokens: 4096,
+  messages: [{ role: "user", content: "..." }],
+});
+```
+
+### Quand utiliser quel modèle ?
+
+- **Claude (par défaut)** : tout code applicatif user-facing, agents production, tool use, fonctionnalités critiques.
+- **Hypercli Kimi K2.6** : tâches coding heavy (Kimi K2.6 leader open-source coding 2026), A/B tests, dev tooling, fallback si quota Claude atteint, opérations longues bénéficiant du contexte 256k.
+- **OpenAI** : exclusivement pour embeddings (`text-embedding-3-small`, 1536d) — pas pour chat sauf fallback ultime.
+
+### Modèles Hypercli disponibles
+
+`kimi-k2.6` · `kimi-k2.6-anthropic` · `kimi-k2.5` · `kimi-k2.5-anthropic` · `glm-5` · `minimax-m2.5` · `qwen3-embedding-4b`
+
+### Règles strictes
+
+- **JAMAIS** hardcoder une clé API dans le code — toujours `process.env.X`.
+- **JAMAIS** créer un client LLM sans passer par `src/lib/llm/` (factory centralisée).
+- **JAMAIS** appeler un provider non listé sans validation explicite d'Adrien.
+- Tracer chaque run LLM (model, tokens, latency, cost) dans Langfuse via les vars `LANGFUSE_*`.
+- Si une requête Claude échoue (429, 500), fallback **automatique** vers Hypercli Kimi K2.6.
+
+## Commandes
+
+- `npm run dev` — Next dev sur port 3000
+- `npm run build` — build prod
+- `npm run lint` — ESLint
+- `npm run electron:dev` — Electron desktop (après scaffold `/electron`)
+- `/dev-adrien` — kill total + relance dev + ouvre Chrome
+
+## Conventions
+
+- Pas de magic numbers. Tout via `.env.local` ou `config/`.
+- **RLS Supabase activée par défaut** sur toutes les tables — toute nouvelle table DOIT avoir une policy (voir [supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql) pour le pattern).
+- Tokens OAuth chiffrés avec `TOKEN_ENCRYPTION_KEY` avant insertion DB.
+- Tous les secrets dans `.env.local` (gitignored) et `docs/api-config/SERVICES.md` (gitignored).
+
+## Référentiels
+
+- Services & API keys : [docs/api-config/SERVICES.md](docs/api-config/SERVICES.md) *(gitignored)*
+- Variables locales : [.env.local](.env.local) *(gitignored)*
+
+## Dashboard de référence
+
+Le UI du dashboard est calé sur le template visuel :
+`/Users/adrienbeyondcrypto/Dev/hearst-os/docs/visual/dashboard-template.html`
+
+Adrien peut modifier ce fichier à tout moment — `/setup` prend toujours la dernière version au moment de l'invocation.
+
+## URL & dashboards
+
+- Supabase : https://app.supabase.com/project/fxeibmjebvxtoazuyyvz
+- Railway : https://railway.app/project/693c476c-3d0c-4213-8088-63018863fa5d
+- Vercel : https://vercel.com/hearst-corporation/myswarms

@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# setup-adrien (secrets projet)
+docs/api-config/
+.supabase-db-password.tmp
+
+# electron
+dist-electron/
+out/
+electron/__tests__/screenshots/
+electron/__tests__/results/
+*.dmg
+*.exe
+*.AppImage
+*.deb
