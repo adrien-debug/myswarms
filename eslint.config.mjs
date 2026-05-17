@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Python microservices — .venv and generated assets must not enter ESLint scope
+    "services/**",
+    // Electron build output
+    "dist-electron/**",
   ]),
 ]);
 

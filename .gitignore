@@ -53,3 +53,12 @@ electron/__tests__/results/
 *.exe
 *.AppImage
 *.deb
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+services/*/.venv/
