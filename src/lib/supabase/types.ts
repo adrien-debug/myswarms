@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_template_access: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json
+          template_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          template_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          template_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_template_access_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "swarms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chief_run_log: {
         Row: {
           error_text: string | null
@@ -268,6 +303,407 @@ export type Database = {
           },
         ]
       }
+      swarm_agents: {
+        Row: {
+          created_at: string
+          id: string
+          max_tokens: number | null
+          model_name: string | null
+          model_provider: string | null
+          name: string
+          parent_agent_id: string | null
+          position_x: number
+          position_y: number
+          role: Database["public"]["Enums"]["agent_role"]
+          swarm_id: string
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_tokens?: number | null
+          model_name?: string | null
+          model_provider?: string | null
+          name: string
+          parent_agent_id?: string | null
+          position_x?: number
+          position_y?: number
+          role: Database["public"]["Enums"]["agent_role"]
+          swarm_id: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_tokens?: number | null
+          model_name?: string | null
+          model_provider?: string | null
+          name?: string
+          parent_agent_id?: string | null
+          position_x?: number
+          position_y?: number
+          role?: Database["public"]["Enums"]["agent_role"]
+          swarm_id?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swarm_agents_parent_agent_id_fkey"
+            columns: ["parent_agent_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_agents_swarm_id_fkey"
+            columns: ["swarm_id"]
+            isOneToOne: false
+            referencedRelation: "swarms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swarm_run_steps: {
+        Row: {
+          agent_id: string | null
+          cost_usd: number
+          created_at: string
+          error_text: string | null
+          finished_at: string | null
+          id: string
+          input_text: string | null
+          langfuse_span_id: string | null
+          latency_ms: number | null
+          output_text: string | null
+          run_id: string
+          status: Database["public"]["Enums"]["crew_run_status"]
+          step_number: number
+          task_id: string | null
+          tokens_in: number
+          tokens_out: number
+        }
+        Insert: {
+          agent_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string
+          input_text?: string | null
+          langfuse_span_id?: string | null
+          latency_ms?: number | null
+          output_text?: string | null
+          run_id: string
+          status?: Database["public"]["Enums"]["crew_run_status"]
+          step_number: number
+          task_id?: string | null
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Update: {
+          agent_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string
+          input_text?: string | null
+          langfuse_span_id?: string | null
+          latency_ms?: number | null
+          output_text?: string | null
+          run_id?: string
+          status?: Database["public"]["Enums"]["crew_run_status"]
+          step_number?: number
+          task_id?: string | null
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swarm_run_steps_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_run_steps_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swarm_runs: {
+        Row: {
+          created_at: string
+          error_text: string | null
+          finished_at: string | null
+          id: string
+          inputs_json: Json
+          langfuse_trace_id: string | null
+          result_text: string | null
+          started_at: string
+          status: Database["public"]["Enums"]["crew_run_status"]
+          swarm_id: string
+          total_cost_usd: number
+          total_tokens_in: number
+          total_tokens_out: number
+          trigger: Database["public"]["Enums"]["crew_trigger"]
+        }
+        Insert: {
+          created_at?: string
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string
+          inputs_json?: Json
+          langfuse_trace_id?: string | null
+          result_text?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["crew_run_status"]
+          swarm_id: string
+          total_cost_usd?: number
+          total_tokens_in?: number
+          total_tokens_out?: number
+          trigger: Database["public"]["Enums"]["crew_trigger"]
+        }
+        Update: {
+          created_at?: string
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string
+          inputs_json?: Json
+          langfuse_trace_id?: string | null
+          result_text?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["crew_run_status"]
+          swarm_id?: string
+          total_cost_usd?: number
+          total_tokens_in?: number
+          total_tokens_out?: number
+          trigger?: Database["public"]["Enums"]["crew_trigger"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swarm_runs_swarm_id_fkey"
+            columns: ["swarm_id"]
+            isOneToOne: false
+            referencedRelation: "swarms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swarm_tasks: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          depends_on_task_id: string | null
+          description: string | null
+          expected_output: string | null
+          id: string
+          name: string
+          position_x: number
+          position_y: number
+          swarm_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          depends_on_task_id?: string | null
+          description?: string | null
+          expected_output?: string | null
+          id?: string
+          name: string
+          position_x?: number
+          position_y?: number
+          swarm_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          depends_on_task_id?: string | null
+          description?: string | null
+          expected_output?: string | null
+          id?: string
+          name?: string
+          position_x?: number
+          position_y?: number
+          swarm_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swarm_tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_tasks_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_tasks_swarm_id_fkey"
+            columns: ["swarm_id"]
+            isOneToOne: false
+            referencedRelation: "swarms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swarm_tool_bindings: {
+        Row: {
+          agent_id: string | null
+          config_json: Json
+          created_at: string
+          id: string
+          priority: number
+          swarm_id: string
+          tool_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          config_json?: Json
+          created_at?: string
+          id?: string
+          priority?: number
+          swarm_id: string
+          tool_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          config_json?: Json
+          created_at?: string
+          id?: string
+          priority?: number
+          swarm_id?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swarm_tool_bindings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "swarm_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_tool_bindings_swarm_id_fkey"
+            columns: ["swarm_id"]
+            isOneToOne: false
+            referencedRelation: "swarms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swarm_tool_bindings_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swarms: {
+        Row: {
+          config_json: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_template: boolean
+          name: string
+          owner_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_template?: boolean
+          name: string
+          owner_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_template?: boolean
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      tools: {
+        Row: {
+          auth_type: string | null
+          category: Database["public"]["Enums"]["tool_category"]
+          created_at: string
+          description: string | null
+          endpoint_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          owner_id: string | null
+          schema_json: Json
+          updated_at: string
+        }
+        Insert: {
+          auth_type?: string | null
+          category: Database["public"]["Enums"]["tool_category"]
+          created_at?: string
+          description?: string | null
+          endpoint_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_id?: string | null
+          schema_json?: Json
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string | null
+          category?: Database["public"]["Enums"]["tool_category"]
+          created_at?: string
+          description?: string | null
+          endpoint_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_id?: string | null
+          schema_json?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null
@@ -294,6 +730,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      agent_role:
+        | "coordinator"
+        | "analyst"
+        | "executor"
+        | "reviewer"
+        | "tool_runner"
       crew_run_status:
         | "pending"
         | "running"
@@ -302,6 +744,13 @@ export type Database = {
         | "failed"
         | "cancelled"
       crew_trigger: "morning" | "evening" | "intraday" | "on_demand" | "webhook"
+      tool_category:
+        | "api_call"
+        | "file_io"
+        | "code_execution"
+        | "search"
+        | "database"
+        | "custom"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -429,6 +878,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agent_role: [
+        "coordinator",
+        "analyst",
+        "executor",
+        "reviewer",
+        "tool_runner",
+      ],
       crew_run_status: [
         "pending",
         "running",
@@ -438,6 +894,14 @@ export const Constants = {
         "cancelled",
       ],
       crew_trigger: ["morning", "evening", "intraday", "on_demand", "webhook"],
+      tool_category: [
+        "api_call",
+        "file_io",
+        "code_execution",
+        "search",
+        "database",
+        "custom",
+      ],
     },
   },
 } as const

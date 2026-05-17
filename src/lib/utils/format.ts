@@ -2,12 +2,15 @@
  * Format ISO 8601 date string to localized fr-FR display.
  * Falls back to the raw ISO if parsing/formatting fails (Vercel runtime, missing ICU).
  *
- * @param iso ISO 8601 timestamp
+ * Accepte `null` / `undefined` pour matcher les fallbacks engine (timestamps
+ * nullable côté Zod, défense en profondeur).
+ *
+ * @param iso ISO 8601 timestamp (ou null / undefined)
  * @param options.withSeconds include HH:MM:SS instead of HH:MM
  * @param options.withYear include year (defaults to true for detail views, false for list)
  */
 export function formatDate(
-  iso: string,
+  iso: string | null | undefined,
   options: { withSeconds?: boolean; withYear?: boolean } = {},
 ): string {
   if (!iso) return "—";

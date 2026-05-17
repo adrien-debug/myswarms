@@ -7,6 +7,7 @@ import {
   RunSummaryListSchema,
   type RunSummary,
 } from "./types";
+import { withOwnerId } from "./_internal";
 
 const ENGINE_URL =
   process.env.CREWAI_ENGINE_URL ?? "http://localhost:8000";
@@ -18,10 +19,35 @@ const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
 // Status polling is handled by the UI (AutoRefresh component, 5s interval).
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+/**
+ * Limite de troncature du body brut dans les messages d'erreur. Évite de leak
+ * une stack trace Python complète en clair vers les clients HTTP.
+ */
+const ERROR_BODY_MAX_CHARS = 200;
+
 if (!ENGINE_TOKEN) {
   console.warn(
     "[crewai/client] CREWAI_ENGINE_AUTH_TOKEN missing — calls will fail with 401"
   );
+}
+
+/**
+ * Erreur typée renvoyée par les appels HTTP vers l'engine CrewAI Python.
+ *
+ * Porte `status` (code HTTP réel renvoyé par l'engine) et `path` (route appelée),
+ * ce qui permet aux call-sites de mapper proprement (401 → 401, 404 → 404,
+ * 429 → 429, autre → 502) sans recourir à un string-match fragile sur `message`.
+ */
+export class CrewaiEngineError extends Error {
+  readonly status: number;
+  readonly path: string;
+
+  constructor(status: number, path: string, message: string) {
+    super(message);
+    this.name = "CrewaiEngineError";
+    this.status = status;
+    this.path = path;
+  }
 }
 
 // TODO V1.1: add exponential backoff retry on 502/503 (Railway cold starts)
@@ -46,25 +72,47 @@ async function handleResponse<T>(
   path: string
 ): Promise<T> {
   if (!res.ok) {
-    const body = await res.text().catch(() => "(no body)");
-    throw new Error(
-      `[crewai/client] ${res.status} ${res.statusText} on ${path}: ${body}`
+    const rawBody = await res.text().catch(() => "(no body)");
+    const truncated =
+      rawBody.length > ERROR_BODY_MAX_CHARS
+        ? `${rawBody.slice(0, ERROR_BODY_MAX_CHARS)}…`
+        : rawBody;
+    throw new CrewaiEngineError(
+      res.status,
+      path,
+      `[crewai/client] ${res.status} ${res.statusText} on ${path}: ${truncated}`
     );
   }
   return res.json() as Promise<T>;
+}
+
+/**
+ * Options communes passées à toutes les méthodes du `crewaiClient`.
+ *
+ * - `ownerId` : ajoute `?owner_id=...` au path engine (multi-tenant V2). `null`/
+ *   `undefined` = pas de filtre (V1 single-user).
+ * - `timeoutMs` : override le timeout par défaut (`DEFAULT_TIMEOUT_MS`).
+ */
+export interface CrewaiCallOptions {
+  ownerId?: string | null;
+  timeoutMs?: number;
 }
 
 export const crewaiClient = {
   async kickoff(
     crewName: string,
     request: CrewKickoffRequest,
-    timeoutMs?: number
+    opts: CrewaiCallOptions = {},
   ): Promise<CrewKickoffResponse> {
-    const path = `/v1/crews/${crewName}/kickoff`;
-    const res = await authedFetch(path, {
-      method: "POST",
-      body: JSON.stringify(request),
-    }, timeoutMs);
+    const path = withOwnerId(`/v1/crews/${crewName}/kickoff`, opts.ownerId);
+    const res = await authedFetch(
+      path,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      },
+      opts.timeoutMs,
+    );
     const data = await handleResponse<unknown>(res, path);
     return CrewKickoffResponseSchema.parse(data);
   },
@@ -72,10 +120,13 @@ export const crewaiClient = {
   async status(
     crewName: string,
     kickoffId: string,
-    timeoutMs?: number
+    opts: CrewaiCallOptions = {},
   ): Promise<CrewStatusResponse> {
-    const path = `/v1/crews/${crewName}/status/${kickoffId}`;
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const path = withOwnerId(
+      `/v1/crews/${crewName}/status/${kickoffId}`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
     const data = await handleResponse<unknown>(res, path);
     return CrewStatusResponseSchema.parse(data);
   },
@@ -83,10 +134,13 @@ export const crewaiClient = {
   async listRuns(
     crewName: string,
     limit: number = 20,
-    timeoutMs?: number
+    opts: CrewaiCallOptions = {},
   ): Promise<RunSummary[]> {
-    const path = `/v1/crews/${encodeURIComponent(crewName)}/runs?limit=${limit}`;
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const path = withOwnerId(
+      `/v1/crews/${encodeURIComponent(crewName)}/runs?limit=${limit}`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
     const data = await handleResponse<unknown>(res, path);
     return RunSummaryListSchema.parse(data);
   },

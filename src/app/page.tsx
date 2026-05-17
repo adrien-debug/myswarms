@@ -1,65 +1,127 @@
-import Image from "next/image";
+import Link from "next/link";
+import { swarmsClient } from "@/lib/crewai/swarms";
+import { getOwnerId } from "@/lib/auth/owner";
+import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
+import { KPIDashboard } from "@/components/swarms/KPIDashboard";
+import { SwarmCard } from "@/components/swarms/SwarmCard";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+const RECENT_SWARMS_LIMIT = 6;
+
+export default async function Home() {
+  let swarms: SwarmListItem[] = [];
+  let engineError: string | null = null;
+  try {
+    const ownerId = await getOwnerId();
+    swarms = await swarmsClient.list(ownerId);
+  } catch (err) {
+    engineError = err instanceof Error ? err.message : "Failed to load swarms";
+  }
+
+  const totalSwarms = swarms.length;
+  const activeSwarms = swarms.filter((s) => s.is_active).length;
+  const activeRuns = swarms.filter((s) => s.last_run_status === "running").length;
+  const recent = [...swarms]
+    .sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))
+    .slice(0, RECENT_SWARMS_LIMIT);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <>
+      <div className="ct-eyebrow">Cockpit · MySwarms</div>
+      <h1 className="ct-title">Bienvenue</h1>
+      <p className="ct-sub">
+        Vue d&apos;ensemble de tes swarms et de leurs runs récents.
+      </p>
+
+      <KPIDashboard
+        kpis={[
+          { label: "Total swarms", value: totalSwarms, accent: true },
+          { label: "Active", value: activeSwarms },
+          { label: "Active runs", value: activeRuns },
+          { label: "Engine", value: engineError ? "down" : "ok" },
+        ]}
+      />
+
+      {engineError ? (
+        <div
+          className="ct-card"
+          style={{ borderColor: "var(--ct-border-accent)" }}
+        >
+          <div className="ct-card-title">Engine indisponible</div>
+          <p className="ct-card-body">{engineError}</p>
+        </div>
+      ) : null}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--ct-text-muted)",
+          }}
+        >
+          Swarms récents
+        </div>
+        <Link href="/swarms" className="ct-seg-btn">
+          Voir tout
+        </Link>
+      </div>
+
+      {recent.length === 0 && !engineError ? (
+        <div className="ct-card">
+          <div className="ct-card-title">Démarre</div>
+          <p className="ct-card-body">
+            Pas encore de swarm.{" "}
+            <Link href="/swarms/new" style={{ color: "var(--ct-accent-strong)" }}>
+              Crée ton premier swarm →
+            </Link>
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          {recent.map((s) => (
+            <SwarmCard key={s.id} swarm={s} />
+          ))}
         </div>
-      </main>
-    </div>
+      )}
+
+      <div className="ct-card">
+        <div className="ct-card-title">Quick actions</div>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <Link href="/swarms/new" className="ct-seg-btn primary">
+            + Nouveau swarm
+          </Link>
+          <Link href="/swarms" className="ct-seg-btn">
+            Tous les swarms
+          </Link>
+          <Link href="/crews/chief-of-staff" className="ct-seg-btn">
+            Crew historique (Chief of Staff)
+          </Link>
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { crewaiClient } from "@/lib/crewai/client";
+import { crewaiClient, CrewaiEngineError } from "@/lib/crewai/client";
 import { CrewKickoffRequestSchema } from "@/lib/crewai/types";
+import { getOwnerId } from "@/lib/auth/owner";
+import { checkBodySize } from "@/lib/utils/body-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const sizeError = checkBodySize(req);
+  if (sizeError) return sizeError;
+
   let body: unknown;
   try {
     body = await req.json();
@@ -24,10 +29,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await crewaiClient.kickoff("chief-of-staff", parsed.data);
+    const ownerId = await getOwnerId();
+    const result = await crewaiClient.kickoff(
+      "chief-of-staff",
+      parsed.data,
+      { ownerId },
+    );
     return NextResponse.json(result, { status: 202 });
   } catch (err) {
+    if (err instanceof CrewaiEngineError) {
+      // Propage tout 4xx (auth, validation, conflit, rate limit, etc.) tel quel.
+      if (err.status >= 400 && err.status < 500) {
+        return NextResponse.json({ error: err.message }, { status: err.status });
+      }
+      // 5xx ou inconnu → 502 Bad Gateway
+      return NextResponse.json({ error: err.message }, { status: 502 });
+    }
     const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }

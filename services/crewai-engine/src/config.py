@@ -1,17 +1,26 @@
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Force-load .env with override=True BEFORE Settings instantiation.
-# pydantic-settings v2 prioritizes os.environ over .env by default — this is the
-# inverse of what we want for myswarms: a stale key exported in the shell session
-# would silently mask the value in .env.local (symlinked as services/.../.env).
-# override=True makes .env values win over pre-existing environment variables.
+# Dual-mode .env loading :
+#   - Dev local : override=True — un .env (symlink de .env.local) DOIT gagner
+#     sur les variables shell exportées historiquement, sinon une vieille clé
+#     dans le shell masque silencieusement la nouvelle valeur du fichier.
+#   - Prod (Railway/Vercel/Render) : override=False — les env vars d'infra sont
+#     LA source de vérité. Un éventuel .env packagé par erreur ne doit jamais
+#     écraser les secrets injectés par la plateforme.
+# Détection : la présence d'une variable d'env spécifique au PaaS suffit pour
+# basculer en "prod-mode".
+_IS_PROD_ENV = any(
+    os.getenv(k)
+    for k in ("RAILWAY_ENVIRONMENT", "RAILWAY_PROJECT_ID", "VERCEL_ENV", "RENDER")
+)
 _ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 if _ENV_PATH.exists():
-    load_dotenv(dotenv_path=_ENV_PATH, override=True)
+    load_dotenv(dotenv_path=_ENV_PATH, override=not _IS_PROD_ENV)
 
 
 class Settings(BaseSettings):
@@ -22,7 +31,7 @@ class Settings(BaseSettings):
     )
 
     # Internal auth between Next.js and crewai-engine — REQUIRED, no default
-    CREWAI_ENGINE_AUTH_TOKEN: str
+    CREWAI_ENGINE_AUTH_TOKEN: str = Field(..., min_length=32, description="Shared bearer token between Next.js and engine. Generate via `openssl rand -hex 32`.")
 
     # LLM providers
     ANTHROPIC_API_KEY: str = ""
@@ -111,6 +120,15 @@ class Settings(BaseSettings):
 
     # Max lag (seconds) before APScheduler skips a misfired job entirely.
     MISFIRE_GRACE_TIME_SECONDS: int = Field(default=300, gt=0)  # max lag before skipping misfired job
+
+    # Architect Agent — timeout (s) de génération de spec de swarm. La
+    # génération inclut jusqu'à 3 appels LLM Opus (retry) — d'où une marge
+    # plus large qu'un simple appel. gt=0 : 0 expirerait immédiatement.
+    ARCHITECT_TIMEOUT_SECONDS: int = Field(
+        default=180,
+        gt=0,
+        description="Max seconds before architect spec generation times out",
+    )
 
 
 settings = Settings()

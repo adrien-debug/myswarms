@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { crewaiClient } from "@/lib/crewai/client";
+import { crewaiClient, CrewaiEngineError } from "@/lib/crewai/client";
 import { formatDate } from "@/lib/utils/format";
+import { isValidUuidV4 } from "@/lib/utils/uuid";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 
 const CREW_NAME = "chief-of-staff";
-
-// UUID v4-ish format (8-4-4-4-12 hex chars). Strict enough to prevent path-traversal-style abuse.
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +17,10 @@ interface PageProps {
 export default async function RunDetailPage({ params }: PageProps) {
   const { runId } = await params;
 
-  // Validate UUID format before hitting microservice.
+  // Validate UUID v4 format before hitting microservice.
   // Defense-in-depth: the microservice's Pydantic UUID type also validates,
   // but blocking here avoids unnecessary network calls + clarifies the contract.
-  if (!UUID_REGEX.test(runId)) {
+  if (!isValidUuidV4(runId)) {
     notFound();
   }
 
@@ -30,7 +28,7 @@ export default async function RunDetailPage({ params }: PageProps) {
   try {
     run = await crewaiClient.status(CREW_NAME, runId);
   } catch (err) {
-    if (err instanceof Error && err.message.includes("404")) {
+    if (err instanceof CrewaiEngineError && err.status === 404) {
       notFound();
     }
     return (

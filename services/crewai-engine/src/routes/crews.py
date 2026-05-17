@@ -153,12 +153,22 @@ async def _execute_flow_background(
 
 
 @router.post("/kickoff", response_model=KickoffResponse)
-async def kickoff(request: KickoffRequest) -> KickoffResponse:
+async def kickoff(
+    request: KickoffRequest,
+    owner_id: str | None = Query(default=None),
+) -> KickoffResponse:
     """Start a Chief of Staff flow run. Returns kickoff_id IMMEDIATELY.
 
     The flow executes in a background asyncio task — poll /status/{kickoff_id} for progress.
     Decoupling the response from flow completion avoids HTTP timeouts (Vercel 10s, browser 30s).
+
+    `owner_id` is propagated from Next.js for future multi-tenant scoping ; V1 is
+    single-user so we just log it (no-op).
     """
+    logger.debug(
+        "chief-of-staff received owner_id=%s (V1 single-user, scoping no-op)",
+        owner_id,
+    )
     _check_rate_limit()
 
     kickoff_id = str(uuid4())
@@ -203,8 +213,19 @@ async def kickoff(request: KickoffRequest) -> KickoffResponse:
 
 
 @router.get("/status/{kickoff_id}", response_model=StatusResponse)
-def status(kickoff_id: UUID) -> StatusResponse:
-    """Return status and result for a given kickoff_id. FastAPI validates UUID format → 422 if malformed."""
+def status(
+    kickoff_id: UUID,
+    owner_id: str | None = Query(default=None),
+) -> StatusResponse:
+    """Return status and result for a given kickoff_id. FastAPI validates UUID format → 422 if malformed.
+
+    `owner_id` is propagated from Next.js for future multi-tenant scoping ; V1 is
+    single-user so we just log it (no-op).
+    """
+    logger.debug(
+        "chief-of-staff received owner_id=%s (V1 single-user, scoping no-op)",
+        owner_id,
+    )
     kid = str(kickoff_id)
     run = _runs.get(kid)
     if run is None:
