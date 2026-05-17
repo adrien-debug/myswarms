@@ -62,3 +62,6 @@ electron/__tests__/results/
 **/.mypy_cache/
 **/.ruff_cache/
 services/*/.venv/
+
+# Python build artifacts
+**/*.egg-info/

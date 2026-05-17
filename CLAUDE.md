@@ -13,6 +13,45 @@
 - **Cache/Queue** : Upstash Redis REST (fallback — Railway Redis non provisionné, CLI v4.36 bug)
 - **Hosting** : Vercel (`hearst-corporation/myswarms`, projet `prj_D7svFbXovy2hni4hAPyN2AJI5Lnq`) + Railway (`693c476c-3d0c-4213-8088-63018863fa5d`)
 
+## 🐍 Microservice CrewAI Python — `services/crewai-engine/`
+
+Moteur d'orchestration multi-agents pour le Daily Chief of Staff AI. **Python-only** (FastAPI + crewai + langfuse + uv). Déployé séparément sur Railway, appelé en HTTP/Bearer depuis Next.js.
+
+### Stack microservice
+
+- Python 3.12 + uv (lockfile `uv.lock`)
+- FastAPI + uvicorn[standard]
+- crewai >= 1.14.4 (orchestration Flows + Crews)
+- langfuse v3 (observabilité)
+- supabase-py (persistence runs / steps)
+
+### Communication Next.js ↔ Python
+
+- URL dev : `CREWAI_ENGINE_URL=http://localhost:8000`
+- URL prod : `CREWAI_ENGINE_URL_PROD=https://crewai-engine-myswarms.up.railway.app`
+- Auth : bearer token partagé `CREWAI_ENGINE_AUTH_TOKEN` (même valeur des deux côtés, généré via `openssl rand -hex 32`)
+- Endpoints : `POST /v1/crews/chief-of-staff/kickoff`, `GET /v1/crews/chief-of-staff/status/{uuid}`, `GET /health`
+- Wrapper TS : `src/lib/crewai/client.ts` (avec `AbortSignal.timeout(30s)` pour Railway cold starts)
+- Routes API Next.js (proxy) : `src/app/api/crews/chief-of-staff/{kickoff,status/[runId]}/route.ts`
+
+### Boot local
+
+```bash
+cd services/crewai-engine
+uv sync
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+Le frontend Next.js (port 3000) appelle automatiquement le microservice si `CREWAI_ENGINE_URL=http://localhost:8000` dans `.env.local`.
+
+### Doc CrewAI
+
+Tout `docs/crewai/` (00-index + 8 sections, ~6600 lignes) contient la doc CrewAI ingérée exhaustivement avec annotation "Pertinence Daily Chief of Staff" page par page. À lire avant tout choix d'API.
+
+### Règle absolue
+
+JAMAIS hardcoder un secret dans `services/crewai-engine/src/` — toujours via `pydantic_settings` BaseSettings + `os.getenv()`. Même règle que Next.js (`process.env.X`).
+
 ## ⚡ MCP Supabase — règle absolue
 
 Tu as accès au **MCP Supabase** dans cette session. Pour TOUTE opération DB, tu utilises le MCP **sans jamais demander confirmation à Adrien** :

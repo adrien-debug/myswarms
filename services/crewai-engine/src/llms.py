@@ -6,15 +6,19 @@ from .config import settings
 
 ModelTier = Literal["fast", "balanced", "smart"]
 
-# TODO: Future — custom BaseLLM bridge for Hypercli fallback (Kimi K2.6).
-# Use openai.OpenAI(api_key=settings.HYPERCLI_API_KEY, base_url=settings.HYPERCLI_BASE_URL).
-
 
 def get_llm(tier: ModelTier = "balanced") -> LLM:
-    """Factory LLM par tier coût/qualité. Utilise Claude via CrewAI natif (anthropic/...)."""
+    """Factory LLM via Claude (Anthropic) — provider natif CrewAI.
+
+    Bascule depuis Kimi/Hypercli (essais infructueux : empty responses sur prompts
+    longs avec function-calling, 404 sur anthropic/, timeouts en ReAct).
+    Sonnet 4.6 tient le rythme de 8 agents séquentiels + tools Composio.
+
+    Note : `temperature` retirée — déprécié sur Claude 4.x (renvoie 400 si fourni).
+    """
     mapping: dict[ModelTier, str] = {
         "fast": settings.CREWAI_DEFAULT_FAST_MODEL,
         "balanced": settings.CREWAI_DEFAULT_BALANCED_MODEL,
         "smart": settings.CREWAI_DEFAULT_SMART_MODEL,
     }
-    return LLM(model=mapping[tier], temperature=0.2)
+    return LLM(model=mapping[tier])

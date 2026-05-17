@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      chief_run_log: {
+        Row: {
+          error_text: string | null
+          finished_at: string | null
+          id: string
+          kickoff_id: string
+          langfuse_trace_id: string | null
+          result: string | null
+          started_at: string
+          state_json: Json | null
+          status: string
+          total_tokens_in: number
+          total_tokens_out: number
+          trigger: string
+        }
+        Insert: {
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string
+          kickoff_id: string
+          langfuse_trace_id?: string | null
+          result?: string | null
+          started_at?: string
+          state_json?: Json | null
+          status: string
+          total_tokens_in?: number
+          total_tokens_out?: number
+          trigger: string
+        }
+        Update: {
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string
+          kickoff_id?: string
+          langfuse_trace_id?: string | null
+          result?: string | null
+          started_at?: string
+          state_json?: Json | null
+          status?: string
+          total_tokens_in?: number
+          total_tokens_out?: number
+          trigger?: string
+        }
+        Relationships: []
+      }
       crew_run_steps: {
         Row: {
           agent_name: string

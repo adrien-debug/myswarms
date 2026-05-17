@@ -3,6 +3,20 @@
 CrewAI orchestration microservice for MySwarms — Daily Chief of Staff AI.
 FastAPI + CrewAI 1.14+, deployed on Railway, consumed by Next.js via REST.
 
+## Secrets
+
+Avant de booter localement ou déployer, génère le token bearer partagé entre Next.js et le microservice :
+
+```bash
+openssl rand -hex 32
+```
+
+Place cette valeur dans :
+- `.env.local` du repo Next.js racine → `CREWAI_ENGINE_AUTH_TOKEN=...`
+- `.env` du microservice (et dans Railway env vars en prod) → `CREWAI_ENGINE_AUTH_TOKEN=...` (même valeur des deux côtés)
+
+Sans token, l'auth Bearer rejette toutes les requêtes (401).
+
 ## Boot local
 
 ```bash

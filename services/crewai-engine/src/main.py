@@ -1,4 +1,6 @@
 import hmac
+import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,14 +9,38 @@ from .config import settings
 from .observability.langfuse_setup import init_observability
 from .routes.health import router as health_router
 from .routes.crews import router as crews_router
+from . import hooks  # registers LLM + tool hooks at startup (side-effect import)  # noqa: F401
+from .scheduler import create_scheduler
+
+logger = logging.getLogger(__name__)
 
 # Boot observability (Langfuse + OpenTelemetry). Fail-soft if keys absent.
 init_observability()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # noqa: RUF029
+    """FastAPI lifespan — starts/stops APScheduler."""
+    scheduler = None
+    if settings.SCHEDULER_ENABLED:
+        scheduler = create_scheduler()
+        scheduler.start()
+        logger.info("APScheduler started")
+
+    yield  # app is running here
+
+    if scheduler is not None:
+        # wait=False — fast shutdown for Railway SIGTERM (15s grace period).
+        # Running jobs receive CancelledError and update their DB status via _run_scheduled_kickoff's except block.
+        scheduler.shutdown(wait=False)
+        logger.info("APScheduler stopped")
+
 
 app = FastAPI(
     title="crewai-engine",
     description="MySwarms CrewAI orchestration microservice",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # CORS — origins loaded from env var (ALLOWED_ORIGINS). Set restrictively in prod.

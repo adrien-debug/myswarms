@@ -4,12 +4,18 @@ import {
   CrewKickoffResponseSchema,
   CrewStatusResponse,
   CrewStatusResponseSchema,
+  RunSummaryListSchema,
+  type RunSummary,
 } from "./types";
 
 const ENGINE_URL =
   process.env.CREWAI_ENGINE_URL ?? "http://localhost:8000";
 const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
 
+// 30s — kickoff is now async (returns kickoff_id immediately, crew runs in background).
+// Both kickoff and status round-trips should complete in <2s. 5 min was only needed
+// when kickoff was synchronous and awaited the full ~48s crew flow end-to-end.
+// Status polling is handled by the UI (AutoRefresh component, 5s interval).
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 if (!ENGINE_TOKEN) {
@@ -72,5 +78,16 @@ export const crewaiClient = {
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
     const data = await handleResponse<unknown>(res, path);
     return CrewStatusResponseSchema.parse(data);
+  },
+
+  async listRuns(
+    crewName: string,
+    limit: number = 20,
+    timeoutMs?: number
+  ): Promise<RunSummary[]> {
+    const path = `/v1/crews/${encodeURIComponent(crewName)}/runs?limit=${limit}`;
+    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const data = await handleResponse<unknown>(res, path);
+    return RunSummaryListSchema.parse(data);
   },
 };
