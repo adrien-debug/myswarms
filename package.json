@@ -8,21 +8,18 @@
     "start": "next start",
     "lint": "eslint",
     "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3000 && npm run electron:start\"",
-    "electron:start": "tsc -p electron && electron .",
-    "electron:build": "tsc -p electron && electron-builder",
+    "electron:assets": "mkdir -p dist-electron && cp electron/splash.html dist-electron/splash.html",
+    "electron:start": "tsc -p electron && npm run electron:assets && electron .",
+    "electron:build": "tsc -p electron && npm run electron:assets && electron-builder",
     "electron:test": "playwright test electron/__tests__",
-    "electron:publish": "tsc -p electron && electron-builder --publish always"
+    "electron:publish": "tsc -p electron && npm run electron:assets && electron-builder --publish always"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
-    "@hookform/resolvers": "^5.2.2",
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.105.4",
     "next": "16.2.6",
     "openai": "^6.38.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-hook-form": "^7.76.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -53,17 +50,19 @@
       "public/**/*",
       "package.json"
     ],
+    "directories": {
+      "output": "dist"
+    },
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
         "dmg",
         "zip"
       ],
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
-      "entitlements": "electron/entitlements.mac.plist",
-      "entitlementsInherit": "electron/entitlements.mac.plist",
-      "notarize": true
+      "identity": null,
+      "notarize": false
     },
     "win": {
       "target": [
@@ -76,9 +75,6 @@
         "deb"
       ]
     },
-    "publish": {
-      "provider": "github",
-      "releaseType": "release"
-    }
+    "publish": null
   }
 }
