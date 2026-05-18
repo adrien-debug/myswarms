@@ -85,7 +85,6 @@ function deriveRunStats(parsed: MockResult | ProductionResult | null): RunStats 
 
 function deriveAgentRows(run: RunSummary | null, now: Date): AgentRow[] {
   return AGENT_DEFS.map((def, idx) => {
-    // Planner est toujours V2 pending
     if (def.name === "Daily Planner") {
       return { ...def, status: "pending" as const, statusLabel: "V2 pending" };
     }
@@ -193,6 +192,10 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
   const today1830 = new Date(run.started_at);
   today1830.setHours(18, 30, 0, 0);
   const totalSpan = today1830.getTime() - startMs;
+  if (totalSpan <= 0) {
+    // Guard : évite NaN dans leftPercent si le run démarre à 18:30 ou après
+    return [{ leftPercent: 96, time: "18:30", label: "Brief soir", variant: "future" }];
+  }
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
   const pct = (ms: number) => clamp(((ms - startMs) / totalSpan) * 100);
   const parsed = tryParse(run.result);
@@ -236,7 +239,6 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
 
 function deriveAgentRowsFromSteps(steps: RunStep[]): AgentRow[] {
   return AGENT_DEFS.map((def) => {
-    // Daily Planner est toujours V2 pending
     if (def.name === "Daily Planner") {
       return { ...def, status: "pending" as const, statusLabel: "V2 pending" };
     }
@@ -279,7 +281,7 @@ function deriveTimelineFromSteps(steps: RunStep[], now: Date): TimelineMarker[] 
   const markers: TimelineMarker[] = steps.map((step) => {
     const d = safeDate(step.started_at);
     return {
-      leftPercent: 0, // recalculé plus bas
+      leftPercent: 0,
       time: d ? formatHHMM(d) : "—",
       label: step.agent_name,
       variant: step.finished_at ? ("done" as const) : ("now" as const),
@@ -292,12 +294,15 @@ function deriveTimelineFromSteps(steps: RunStep[], now: Date): TimelineMarker[] 
     const today1830 = new Date(steps[0].started_at);
     today1830.setHours(18, 30, 0, 0);
     const totalSpan = today1830.getTime() - firstMs;
-    const clamp = (v: number) => Math.max(0, Math.min(100, v));
-
-    steps.forEach((step, i) => {
-      const ms = safeDate(step.started_at)?.getTime() ?? firstMs;
-      markers[i].leftPercent = clamp(((ms - firstMs) / totalSpan) * 100);
-    });
+    if (totalSpan > 0) {
+      // Guard : évite NaN dans leftPercent si le step démarre à 18:30 ou après
+      const clamp = (v: number) => Math.max(0, Math.min(100, v));
+      steps.forEach((step, i) => {
+        const ms = safeDate(step.started_at)?.getTime() ?? firstMs;
+        markers[i].leftPercent = clamp(((ms - firstMs) / totalSpan) * 100);
+      });
+    }
+    // else : tous les leftPercent restent à 0 (marqueurs visibles au bord gauche, pas NaN)
   }
 
   // Ajouter "Brief soir" 18:30 futur
@@ -315,7 +320,6 @@ export function deriveViewModel(
 ): ChiefHomeViewModel {
   const parsed = tryParse(run?.result);
 
-  // Calcul du p0Item de base
   let p0Item: P0Item | null = extractP0(parsed);
 
   // Filtrer le P0 si une décision "rejected" ou "snoozed" (encore active) existe
