@@ -2,7 +2,6 @@ import { z } from "zod";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-export type CrewTrigger = "morning" | "evening" | "intraday" | "on_demand" | "webhook";
 export type RunStatus =
   | "pending"
   | "running"

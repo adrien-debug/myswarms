@@ -13,27 +13,19 @@ import {
   type Decision,
   type DecisionAction,
 } from "./types";
-import { withOwnerId } from "./_internal";
+import {
+  authedFetch,
+  ENGINE_TOKEN,
+  EngineError,
+  handleResponse,
+  logWarning,
+  withOwnerId,
+} from "./_internal";
 
-const ENGINE_URL =
-  process.env.CREWAI_ENGINE_URL ?? "http://localhost:8000";
-const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
-
-// 30s — kickoff is now async (returns kickoff_id immediately, crew runs in background).
-// Both kickoff and status round-trips should complete in <2s. 5 min was only needed
-// when kickoff was synchronous and awaited the full ~48s crew flow end-to-end.
-// Status polling is handled by the UI (AutoRefresh component, 5s interval).
-const DEFAULT_TIMEOUT_MS = 30_000;
-
-/**
- * Limite de troncature du body brut dans les messages d'erreur. Évite de leak
- * une stack trace Python complète en clair vers les clients HTTP.
- */
-const ERROR_BODY_MAX_CHARS = 200;
-
+// Guard boot-time — utilise logWarning (SSR-safe, pas de console.warn nu).
 if (!ENGINE_TOKEN) {
-  console.warn(
-    "[crewai/client] CREWAI_ENGINE_AUTH_TOKEN missing — calls will fail with 401"
+  logWarning(
+    "[crewai/client] CREWAI_ENGINE_AUTH_TOKEN missing — calls will fail with 401",
   );
 }
 
@@ -43,74 +35,14 @@ if (!ENGINE_TOKEN) {
  * Porte `status` (code HTTP réel renvoyé par l'engine) et `path` (route appelée),
  * ce qui permet aux call-sites de mapper proprement (401 → 401, 404 → 404,
  * 429 → 429, autre → 502) sans recourir à un string-match fragile sur `message`.
+ *
+ * Alias rétrocompatible de `EngineError` (_internal.ts).
  */
-export class CrewaiEngineError extends Error {
-  readonly status: number;
-  readonly path: string;
-
+export class CrewaiEngineError extends EngineError {
   constructor(status: number, path: string, message: string) {
-    super(message);
+    super(status, path, message);
     this.name = "CrewaiEngineError";
-    this.status = status;
-    this.path = path;
   }
-}
-
-const RETRY_STATUSES = [502, 503];
-const RETRY_BACKOFF_MS = [1000, 2000];
-
-async function authedFetch(
-  path: string,
-  init: RequestInit = {},
-  timeoutMs: number = DEFAULT_TIMEOUT_MS
-): Promise<Response> {
-  let lastRes: Response | undefined;
-  let lastErr: unknown;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) {
-      await new Promise<void>((r) =>
-        setTimeout(r, RETRY_BACKOFF_MS[attempt - 1])
-      );
-    }
-    try {
-      const res = await fetch(`${ENGINE_URL}${path}`, {
-        ...init,
-        signal: AbortSignal.timeout(timeoutMs),
-        headers: {
-          Authorization: `Bearer ${ENGINE_TOKEN}`,
-          "Content-Type": "application/json",
-          ...(init.headers ?? {}),
-        },
-      });
-      if (!RETRY_STATUSES.includes(res.status)) return res;
-      lastRes = res;
-    } catch (err) {
-      lastErr = err;
-      // network error (ECONNREFUSED, DNS, AbortError) — retry
-    }
-  }
-  // All 3 attempts exhausted
-  if (lastRes !== undefined) return lastRes;
-  throw lastErr ?? new Error(`Network error after 3 attempts: ${path}`);
-}
-
-async function handleResponse<T>(
-  res: Response,
-  path: string
-): Promise<T> {
-  if (!res.ok) {
-    const rawBody = await res.text().catch(() => "(no body)");
-    const truncated =
-      rawBody.length > ERROR_BODY_MAX_CHARS
-        ? `${rawBody.slice(0, ERROR_BODY_MAX_CHARS)}…`
-        : rawBody;
-    throw new CrewaiEngineError(
-      res.status,
-      path,
-      `[crewai/client] ${res.status} ${res.statusText} on ${path}: ${truncated}`
-    );
-  }
-  return res.json() as Promise<T>;
 }
 
 /**
@@ -119,8 +51,10 @@ async function handleResponse<T>(
  * - `ownerId` : ajoute `?owner_id=...` au path engine (multi-tenant V2). `null`/
  *   `undefined` = pas de filtre (V1 single-user).
  * - `timeoutMs` : override le timeout par défaut (`DEFAULT_TIMEOUT_MS`).
+ *
+ * @internal — non exportée : aucun call-site externe ne l'importe.
  */
-export interface CrewaiCallOptions {
+interface CrewaiCallOptions {
   ownerId?: string | null;
   timeoutMs?: number;
 }
@@ -140,7 +74,7 @@ export const crewaiClient = {
       },
       opts.timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return CrewKickoffResponseSchema.parse(data);
   },
 
@@ -154,7 +88,7 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return CrewStatusResponseSchema.parse(data);
   },
 
@@ -168,36 +102,67 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return RunSummaryListSchema.parse(data);
   },
 
-  async listSteps(crew: string, kickoffId: string): Promise<RunStep[]> {
-    const path = `/v1/crews/${crew}/runs/${kickoffId}/steps`;
-    const res = await authedFetch(path);
-    const data = await handleResponse<unknown>(res, path);
+  /**
+   * Liste les steps d'un run, filtrés par owner_id.
+   * Endpoint engine : GET /v1/crews/{crew}/runs/{runId}/steps?owner_id=...
+   */
+  async listSteps(
+    crewName: string,
+    kickoffId: string,
+    opts: CrewaiCallOptions = {},
+  ): Promise<RunStep[]> {
+    const path = withOwnerId(
+      `/v1/crews/${encodeURIComponent(crewName)}/runs/${encodeURIComponent(kickoffId)}/steps`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return z.array(RunStepSchema).parse(data);
   },
 
+  /**
+   * Enregistre une décision pour un crew, scopée par owner_id.
+   * Endpoint engine : POST /v1/crews/{crew}/decisions?owner_id=...
+   */
   async recordDecision(
-    crew: string,
+    crewName: string,
     payload: { kickoff_id: string; action: DecisionAction; snooze_hours?: number },
+    opts: CrewaiCallOptions = {},
   ): Promise<Decision> {
-    const path = `/v1/crews/${crew}/decisions`;
-    const res = await authedFetch(path, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    const data = await handleResponse<unknown>(res, path);
+    const path = withOwnerId(
+      `/v1/crews/${encodeURIComponent(crewName)}/decisions`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(
+      path,
+      { method: "POST", body: JSON.stringify(payload) },
+      opts.timeoutMs,
+    );
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return DecisionSchema.parse(data);
   },
 
-  async listDecisions(crew: string, kickoffId: string): Promise<Decision[]> {
+  /**
+   * Liste les décisions enregistrées pour un run, filtrées par owner_id.
+   * Endpoint engine : GET /v1/crews/{crew}/runs/{runId}/decisions?owner_id=...
+   */
+  async listDecisions(
+    crewName: string,
+    kickoffId: string,
+    opts: CrewaiCallOptions = {},
+  ): Promise<Decision[]> {
     try {
-      const path = `/v1/crews/${crew}/runs/${kickoffId}/decisions`;
-      const res = await authedFetch(path);
+      const path = withOwnerId(
+        `/v1/crews/${encodeURIComponent(crewName)}/runs/${encodeURIComponent(kickoffId)}/decisions`,
+        opts.ownerId,
+      );
+      const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
       if (!res.ok) return [];
-      const data = await res.json();
+      const data = await handleResponse<unknown>(res, path, "[crewai/client]");
       return z.array(DecisionSchema).parse(data);
     } catch {
       return [];

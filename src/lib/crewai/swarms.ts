@@ -19,13 +19,16 @@ import {
   Tool,
   ToolListSchema,
 } from "@/lib/forms/swarmSchemas";
-import { withOwnerId } from "./_internal";
+import {
+  authedFetch,
+  ENGINE_TOKEN,
+  EngineError,
+  handleResponse,
+  logWarning,
+  withOwnerId,
+} from "./_internal";
 
 // ─── Config (env, pas de magic numbers) ──────────────────────────────────────
-
-const ENGINE_URL = process.env.CREWAI_ENGINE_URL ?? "http://localhost:8000";
-const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
-const DEFAULT_TIMEOUT_MS = Number(process.env.CREWAI_ENGINE_TIMEOUT_MS ?? "30000");
 
 /**
  * Timeout dédié à l'Architect Agent : la génération de spec passe par un run
@@ -36,27 +39,7 @@ const ARCHITECT_TIMEOUT_MS = Number(
   process.env.CREWAI_ENGINE_ARCHITECT_TIMEOUT_MS ?? "90000",
 );
 
-/**
- * H8 fix : log centralisé pour les warnings SSR boot-time.
- *
- * V1 : appelle `console.warn` (visible dans les logs Vercel server-side).
- * V2 : remplacer par un client de logging structuré (e.g. pino, Sentry,
- * Better Stack) — un seul point de modification ici.
- *
- * Important : aucun side-effect côté client (test `typeof window === "undefined"`
- * inclus) pour éviter de polluer la console navigateur.
- */
-function logWarning(message: string): void {
-  if (typeof window !== "undefined") return;
-  console.warn(message);
-}
-
-/**
- * Limite de troncature du body brut dans les messages d'erreur. Évite de leak
- * une stack trace Python complète en clair vers les clients HTTP.
- */
-const ERROR_BODY_MAX_CHARS = 200;
-
+// Guard boot-time — utilise logWarning (SSR-safe, pas de console.warn nu).
 if (!ENGINE_TOKEN) {
   logWarning(
     "[crewai/swarms] CREWAI_ENGINE_AUTH_TOKEN missing — calls will fail with 401",
@@ -67,60 +50,15 @@ if (!ENGINE_TOKEN) {
  * Erreur typée renvoyée par les appels HTTP vers l'engine CrewAI Python
  * (surface `swarms`).
  *
- * Porte `status` (code HTTP réel renvoyé par l'engine) et `path` (route appelée),
- * ce qui permet aux call-sites de mapper proprement (401 → 401, 404 → 404,
- * 429 → 429, autre → 502) sans recourir à un string-match fragile sur `message`.
- *
- * Note : modèle identique à `CrewaiEngineError` (src/lib/crewai/client.ts).
- * Volontairement 2 classes distinctes (pas de base commune) pour ne pas
- * impacter les call-sites existants de `CrewaiEngineError` — la sécurité prime
- * sur le DRY ici.
+ * Alias rétrocompatible de `EngineError` (_internal.ts). Les call-sites et les
+ * tests qui importent `SwarmEngineError` depuis ce module continuent de
+ * fonctionner sans modification.
  */
-export class SwarmEngineError extends Error {
-  readonly status: number;
-  readonly path: string;
-
+export class SwarmEngineError extends EngineError {
   constructor(status: number, path: string, message: string) {
-    super(message);
+    super(status, path, message);
     this.name = "SwarmEngineError";
-    this.status = status;
-    this.path = path;
   }
-}
-
-async function authedFetch(
-  path: string,
-  init: RequestInit = {},
-  timeoutMs: number = DEFAULT_TIMEOUT_MS,
-): Promise<Response> {
-  return fetch(`${ENGINE_URL}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(timeoutMs),
-    headers: {
-      Authorization: `Bearer ${ENGINE_TOKEN}`,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-    cache: "no-store",
-  });
-}
-
-async function handleResponse<T>(res: Response, path: string): Promise<T> {
-  if (!res.ok) {
-    const rawBody = await res.text().catch(() => "(no body)");
-    const truncated =
-      rawBody.length > ERROR_BODY_MAX_CHARS
-        ? `${rawBody.slice(0, ERROR_BODY_MAX_CHARS)}…`
-        : rawBody;
-    throw new SwarmEngineError(
-      res.status,
-      path,
-      `[crewai/swarms] ${res.status} ${res.statusText} on ${path}: ${truncated}`,
-    );
-  }
-  // 204 No Content → renvoyer null
-  if (res.status === 204) return null as T;
-  return (await res.json()) as T;
 }
 
 // ─── Public client ──────────────────────────────────────────────────────────
@@ -132,6 +70,9 @@ async function handleResponse<T>(res: Response, path: string): Promise<T> {
  * query-param `?owner_id=` quand défini. Architecture pensée pour le passage
  * single-user (V1) → multi-tenant (V2 Supabase auth) sans changement de
  * surface côté call-sites.
+ *
+ * Note : authedFetch inclut un retry exponentiel sur 502/503/504 (Railway cold
+ * starts) — tous les appels en bénéficient automatiquement.
  */
 export const swarmsClient = {
   async list(
@@ -140,7 +81,7 @@ export const swarmsClient = {
   ): Promise<SwarmListItem[]> {
     const path = withOwnerId(`/v1/swarms`, ownerId);
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmListSchema.parse(data);
   },
 
@@ -154,7 +95,7 @@ export const swarmsClient = {
       ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmRecordSchema.parse(data);
   },
 
@@ -170,7 +111,7 @@ export const swarmsClient = {
       { method: "POST", body: JSON.stringify(validated) },
       timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmRecordSchema.parse(data);
   },
 
@@ -192,7 +133,7 @@ export const swarmsClient = {
       { method: "PATCH", body: JSON.stringify(payload) },
       timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmRecordSchema.parse(data);
   },
 
@@ -206,7 +147,7 @@ export const swarmsClient = {
       ownerId,
     );
     const res = await authedFetch(path, { method: "DELETE" }, timeoutMs);
-    await handleResponse<unknown>(res, path);
+    await handleResponse<unknown>(res, path, "[crewai/swarms]");
   },
 
   async kickoff(
@@ -225,7 +166,7 @@ export const swarmsClient = {
       { method: "POST", body: JSON.stringify(validated) },
       timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmKickoffResponseSchema.parse(data);
   },
 
@@ -240,7 +181,7 @@ export const swarmsClient = {
       ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmRunSchema.parse(data);
   },
 
@@ -254,7 +195,7 @@ export const swarmsClient = {
       ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmRunSchema.parse(data);
   },
 
@@ -269,7 +210,7 @@ export const swarmsClient = {
       ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return SwarmRunSummaryListSchema.parse(data);
   },
 
@@ -290,7 +231,7 @@ export const swarmsClient = {
       { method: "POST", body: JSON.stringify({ prompt }) },
       timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return ArchitectResponseSchema.parse(data);
   },
 
@@ -300,7 +241,7 @@ export const swarmsClient = {
   ): Promise<Tool[]> {
     const path = withOwnerId(`/v1/tools`, ownerId);
     const res = await authedFetch(path, { method: "GET" }, timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/swarms]");
     return ToolListSchema.parse(data);
   },
 };

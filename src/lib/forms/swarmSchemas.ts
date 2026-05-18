@@ -41,7 +41,6 @@ export const ToolCategorySchema = z.enum([
   "database",
   "custom",
 ]);
-export type ToolCategory = z.infer<typeof ToolCategorySchema>;
 
 export const SwarmTriggerSchema = z.enum([
   "morning",
@@ -50,7 +49,6 @@ export const SwarmTriggerSchema = z.enum([
   "on_demand",
   "webhook",
 ]);
-export type SwarmTrigger = z.infer<typeof SwarmTriggerSchema>;
 
 export const RunStatusSchema = z.enum([
   "pending",
@@ -120,7 +118,6 @@ export type TaskInput = z.output<typeof TaskInputSchema>;
 export const TaskRecordSchema = TaskInputSchema.extend({
   agent_id: uuidString().nullable(),
 });
-export type TaskRecord = z.output<typeof TaskRecordSchema>;
 
 export const ToolBindingInputSchema = z.object({
   id: uuidString().optional(),
@@ -142,7 +139,6 @@ export type ToolBindingInput = z.output<typeof ToolBindingInputSchema>;
 export const ToolBindingRecordSchema = ToolBindingInputSchema.extend({
   agent_id: uuidString().nullable(),
 });
-export type ToolBindingRecord = z.output<typeof ToolBindingRecordSchema>;
 
 export const SwarmInputSchema = z.object({
   id: uuidString().optional(),
@@ -351,9 +347,6 @@ export const ArchitectGenerateRequestSchema = z.object({
     .min(ARCHITECT_PROMPT_MIN, "Décris ton swarm plus en détail (10 caractères min)")
     .max(ARCHITECT_PROMPT_MAX, "Description trop longue (4000 caractères max)"),
 });
-export type ArchitectGenerateRequest = z.input<
-  typeof ArchitectGenerateRequestSchema
->;
 
 // Spec renvoyée par l'Architect : même shape que `SwarmInputSchema` (les
 // `.default()` Zod comblent les champs absents → state builder cohérent).
