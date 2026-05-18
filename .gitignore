@@ -76,3 +76,5 @@ services/*/.venv/
 
 # Claude Code (config locale — settings, plans, worktrees)
 .claude/
+.playwright-mcp/
+login-with-nav.png
