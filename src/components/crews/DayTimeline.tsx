@@ -1,9 +1,15 @@
-import { FONT } from "@/lib/ui/tokens";
+import { FONT, SPACING, RADIUS } from "@/lib/ui/tokens";
 import type { TimelineMarker } from "@/lib/crews/chiefTypes";
 
 interface Props {
   markers: TimelineMarker[];
 }
+
+// Hauteur fixe d'une ligne de timeline (px).
+const ROW_H = 56;
+
+// Glow du marqueur "now" — pas de token exact, const locale documentée.
+const NOW_GLOW = "0 0 8px 2px rgba(255,180,84,0.5)";
 
 function dotColor(variant: TimelineMarker["variant"]): string {
   switch (variant) {
@@ -18,7 +24,7 @@ function dotColor(variant: TimelineMarker["variant"]): string {
 
 function dotBoxShadow(variant: TimelineMarker["variant"]): string | undefined {
   if (variant === "now") {
-    return "0 0 8px 2px rgba(255,180,84,0.5)";
+    return NOW_GLOW;
   }
   return undefined;
 }
@@ -33,8 +39,8 @@ export function DayTimeline({ markers }: Props) {
     <div
       style={{
         position: "relative",
-        height: 56,
-        marginBottom: 8,
+        height: ROW_H,
+        marginBottom: SPACING.sm,
       }}
     >
       {/* Rail background */}
@@ -44,10 +50,10 @@ export function DayTimeline({ markers }: Props) {
           top: "50%",
           left: 0,
           right: 0,
-          height: 2,
+          height: SPACING.hair,
           background: "var(--ct-border)",
           transform: "translateY(-50%)",
-          borderRadius: 1,
+          borderRadius: RADIUS.hair,
         }}
       />
 
@@ -58,10 +64,10 @@ export function DayTimeline({ markers }: Props) {
           top: "50%",
           left: 0,
           width: `${fillPercent}%`,
-          height: 2,
+          height: SPACING.hair,
           background: "var(--cos-accent)",
           transform: "translateY(-50%)",
-          borderRadius: 1,
+          borderRadius: RADIUS.hair,
           transition: "width 0.4s ease",
         }}
       />

@@ -8,6 +8,9 @@ import type { P0Item } from "@/lib/crews/chiefTypes";
 // Mirror of Python DEFAULT_SNOOZE_HOURS — keep in sync with chief_decision_store.py
 const DEFAULT_SNOOZE_HOURS = 2;
 
+// Contraste foncé sur --cos-accent (vert foncé sur fond clair).
+const ACCENT_FG = "#08110d"; /* contraste foncé sur --cos-accent */
+
 interface Props {
   p0Item: P0Item | null;
   draftText: string | null;
@@ -74,7 +77,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         className="ct-card"
         style={{ textAlign: "center", padding: SPACING.xxl }}
       >
-        <div style={{ fontSize: 32 }}>🎯</div>
+        <div style={{ fontSize: "2rem" /* 32px icon */ }}>🎯</div>
         <p
           style={{
             color: "var(--ct-text-muted)",
@@ -108,7 +111,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontWeight: 700,
             padding: `3px ${SPACING.sm}px`,
             borderRadius: RADIUS.sm,
-            background: "rgba(255,94,122,0.1)",
+            background: "color-mix(in srgb, var(--cos-p0) 10%, transparent)",
             color: "var(--cos-p0)",
           }}
         >
@@ -169,7 +172,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           paddingLeft: SPACING.lg,
           paddingTop: SPACING.sm,
           paddingBottom: SPACING.sm,
-          background: "rgba(255,255,255,0.02)",
+          background: "rgba(255,255,255,0.02)", // pas de token exact, valeur conservée
           borderRadius: `0 ${RADIUS.sm}px ${RADIUS.sm}px 0`,
           fontSize: FONT.base,
           color: "var(--ct-text-body)",
@@ -183,7 +186,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
       {draftText ? (
         <div
           style={{
-            background: "rgba(124,242,196,0.04)",
+            background: "color-mix(in srgb, var(--cos-accent) 4%, transparent)",
             border: "1px dashed var(--cos-accent-border)",
             borderRadius: RADIUS.md,
             padding: SPACING.lg,
@@ -191,7 +194,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         >
           <div
             style={{
-              fontSize: 10,
+              fontSize: FONT.xs,
               fontWeight: 700,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
@@ -228,6 +231,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
       <div style={{ display: "flex", gap: SPACING.sm, flexWrap: "wrap" }}>
         {/* E — Envoyer */}
         <button
+          className="ct-seg-btn"
           disabled
           title="Phase 3 — approbation Composio Gmail requise"
           style={{
@@ -251,10 +255,10 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
               position: "absolute",
               bottom: 4,
               right: 6,
-              fontSize: 9,
-              background: "rgba(255,255,255,0.1)",
-              borderRadius: 3,
-              padding: "1px 4px",
+              fontSize: FONT.nano,
+              background: "rgba(255,255,255,0.1)", // pas de token exact, conservé
+              borderRadius: RADIUS.xs,
+              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
               color: "var(--ct-text-faint)",
             }}
           >
@@ -264,6 +268,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
         {/* M — Modifier */}
         <button
+          className="ct-seg-btn primary"
           onClick={() => runId && router.push(`/crews/chief-of-staff/runs/${runId}`)}
           disabled={!runId}
           style={{
@@ -273,7 +278,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             background: "var(--cos-accent)",
             border: "none",
             borderRadius: RADIUS.md,
-            color: "#08110d",
+            color: ACCENT_FG,
             fontSize: FONT.base,
             fontWeight: 700,
             cursor: "pointer",
@@ -286,10 +291,10 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
               position: "absolute",
               bottom: 4,
               right: 6,
-              fontSize: 9,
-              background: "rgba(0,0,0,0.2)",
-              borderRadius: 3,
-              padding: "1px 4px",
+              fontSize: FONT.nano,
+              background: "rgba(0,0,0,0.2)", // pas de token exact, conservé
+              borderRadius: RADIUS.xs,
+              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
               color: "rgba(0,0,0,0.6)",
             }}
           >
@@ -299,6 +304,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
         {/* S — Snooze */}
         <button
+          className="ct-seg-btn"
           onClick={() => void handleDecision("snoozed")}
           disabled={!runId || loading !== null}
           style={{
@@ -322,10 +328,10 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
               position: "absolute",
               bottom: 4,
               right: 6,
-              fontSize: 9,
-              background: "rgba(255,255,255,0.1)",
-              borderRadius: 3,
-              padding: "1px 4px",
+              fontSize: FONT.nano,
+              background: "rgba(255,255,255,0.1)", // pas de token exact, conservé
+              borderRadius: RADIUS.xs,
+              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
               color: "var(--ct-text-faint)",
             }}
           >
@@ -335,6 +341,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
         {/* R — Rejeter */}
         <button
+          className="ct-seg-btn"
           onClick={() => void handleDecision("rejected")}
           disabled={!runId || loading !== null}
           style={{
@@ -358,10 +365,10 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
               position: "absolute",
               bottom: 4,
               right: 6,
-              fontSize: 9,
-              background: "rgba(255,255,255,0.1)",
-              borderRadius: 3,
-              padding: "1px 4px",
+              fontSize: FONT.nano,
+              background: "rgba(255,255,255,0.1)", // pas de token exact, conservé
+              borderRadius: RADIUS.xs,
+              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
               color: "var(--ct-text-faint)",
             }}
           >

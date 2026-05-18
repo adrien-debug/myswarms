@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FONT, SPACING } from "@/lib/ui/tokens";
-
-const NAV_BTN_SIZE = 40;
-const NAV_BTN_RADIUS = 10;
+import { FONT, SPACING, RADIUS } from "@/lib/ui/tokens";
 
 interface NavEntry {
   href: string;
@@ -45,9 +42,9 @@ export function RailLeft() {
               : pathname?.startsWith(entry.href);
 
           const baseStyle: React.CSSProperties = {
-            width: NAV_BTN_SIZE,
-            height: NAV_BTN_SIZE,
-            borderRadius: NAV_BTN_RADIUS,
+            width: 40,
+            height: 40,
+            borderRadius: RADIUS.nav,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

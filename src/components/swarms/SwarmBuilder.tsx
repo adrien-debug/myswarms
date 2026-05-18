@@ -43,6 +43,10 @@ const EMPTY_SWARM: SwarmInputRaw = {
   tool_bindings: [],
 };
 
+// Hauteur max du panneau preview JSON — var CSS définie par stream B1 dans cockpit.css ;
+// fallback const locale si var non définie en isolation.
+const MAX_H = 480;
+
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "agents", label: "Agents" },
@@ -391,7 +395,7 @@ export function SwarmBuilder({
               color: "var(--ct-text-primary)",
               fontFamily: "monospace",
               overflow: "auto",
-              maxHeight: 480,
+              maxHeight: MAX_H,
             }}
           >
             {previewJson}

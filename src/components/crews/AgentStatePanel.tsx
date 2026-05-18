@@ -13,7 +13,7 @@ function statusColor(status: AgentRow["status"]): string {
     case "active":
       return "var(--cos-accent)";
     case "idle":
-      return "rgba(255,255,255,0.3)";
+      return "var(--ct-text-muted)";
     case "pending":
       return "var(--ct-text-muted)";
   }

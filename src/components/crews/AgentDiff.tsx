@@ -7,6 +7,9 @@ interface Props {
   elapsed: string;
 }
 
+// Largeur minimale de la colonne temps — pas de token exact, const locale documentée.
+const TIME_COL_W = 38;
+
 /**
  * Parse bold markdown (**text**) and render alternating plain/bold segments.
  * Bold segments get color: var(--cos-warn).
@@ -86,7 +89,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
           Aucun diff · Lance un run pour voir l&apos;activité des agents
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.hair }}>
           {items.map((item, i) => (
             <div
               key={i}
@@ -103,8 +106,8 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
                 style={{
                   fontFamily: "monospace",
                   fontSize: FONT.xs,
-                  color: "rgba(255,255,255,0.3)",
-                  minWidth: 38,
+                  color: "var(--ct-text-muted)",
+                  minWidth: TIME_COL_W,
                   flexShrink: 0,
                   lineHeight: 1.6,
                   paddingTop: 1,

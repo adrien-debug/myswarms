@@ -105,6 +105,7 @@ export function ToolPicker({
                 <button
                   key={tool.id}
                   type="button"
+                  className="ct-seg-btn"
                   onClick={() => toggle(tool)}
                   style={{
                     background: isSelected
