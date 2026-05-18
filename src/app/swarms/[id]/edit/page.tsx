@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { SwarmBuilder } from "@/components/swarms/SwarmBuilder";
 import type { SwarmRecord, Tool } from "@/lib/forms/swarmSchemas";
+import { RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -53,17 +54,35 @@ export default function EditSwarmPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <>
-        <div className="ct-eyebrow">
-          <Link
-            href={`/swarms/${id}`}
-            style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
-          >
-            ← Détail
-          </Link>
+      <div style={{ padding: SPACING.xl }}>
+        <style>{`
+          @keyframes ct-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+          }
+        `}</style>
+        <div className="ct-card" style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
+          <div style={{
+            height: 28,
+            background: "var(--ct-surface-3)",
+            borderRadius: RADIUS.md,
+            animation: "ct-pulse 1.5s ease-in-out infinite",
+          }} />
+          <div style={{
+            height: 16,
+            width: "60%",
+            background: "var(--ct-surface-2)",
+            borderRadius: RADIUS.sm,
+            animation: "ct-pulse 1.5s ease-in-out infinite 0.1s",
+          }} />
+          <div style={{
+            height: 80,
+            background: "var(--ct-surface-2)",
+            borderRadius: RADIUS.sm,
+            animation: "ct-pulse 1.5s ease-in-out infinite 0.2s",
+          }} />
         </div>
-        <h1 className="ct-title">Chargement…</h1>
-      </>
+      </div>
     );
   }
 
@@ -73,15 +92,14 @@ export default function EditSwarmPage({ params }: PageProps) {
         <div className="ct-eyebrow">
           <Link
             href="/swarms"
-            style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
+            className="ct-breadcrumb-link"
           >
             ← Swarms
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
         <div
-          className="ct-card"
-          style={{ borderColor: "var(--ct-border-accent)" }}
+          className="ct-card ct-card--accent"
         >
           <div className="ct-card-title">Chargement échoué</div>
           <p className="ct-card-body">{error ?? "Swarm introuvable."}</p>

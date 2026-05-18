@@ -1,22 +1,26 @@
-const STATUS_STYLES: Record<string, string> = {
-  completed: "bg-green-100 text-green-800",
-  running: "bg-blue-100 text-blue-800",
-  failed: "bg-red-100 text-red-800",
-  cancelled: "bg-neutral-200 text-neutral-700",
-  paused_hitl: "bg-amber-100 text-amber-800",
+import type { CSSProperties } from "react";
+
+const STATUS_STYLES: Record<string, CSSProperties> = {
+  completed: { background: "var(--ct-status-completed-bg)", color: "var(--ct-status-completed)", border: "1px solid var(--ct-status-completed-border)" },
+  running: { background: "var(--ct-status-running-bg)", color: "var(--ct-status-running)", border: "1px solid var(--ct-status-running-border)" },
+  failed: { background: "var(--ct-status-failed-bg)", color: "var(--ct-status-failed)", border: "1px solid var(--ct-status-failed-border)" },
+  cancelled: { background: "var(--ct-status-cancelled-bg)", color: "var(--ct-status-cancelled)", border: "1px solid var(--ct-status-cancelled-border)" },
+  paused_hitl: { background: "var(--ct-status-paused-bg)", color: "var(--ct-status-paused)", border: "1px solid var(--ct-status-paused-border)" },
 };
 
-export function StatusBadge({
-  status,
-  size = "sm",
-}: {
-  status: string;
-  size?: "sm" | "md";
-}) {
-  const cls = STATUS_STYLES[status] ?? "bg-neutral-100 text-neutral-700";
-  const padding = size === "md" ? "px-2.5 py-1" : "px-2.5 py-0.5";
+const BASE_STYLE: CSSProperties = {
+  display: "inline-flex",
+  borderRadius: 9999,
+  fontSize: 11,
+  fontWeight: 500,
+  whiteSpace: "nowrap",
+};
+
+export function StatusBadge({ status, size = "sm" }: { status: string; size?: "sm" | "md" }) {
+  const statusStyle = STATUS_STYLES[status] ?? { background: "var(--ct-surface-2)", color: "var(--ct-text-muted)", border: "1px solid var(--ct-border)" };
+  const padding: CSSProperties = size === "md" ? { padding: "4px 10px" } : { padding: "2px 8px" };
   return (
-    <span className={`inline-flex rounded-full ${padding} text-xs font-medium ${cls}`}>
+    <span style={{ ...BASE_STYLE, ...statusStyle, ...padding }}>
       {status}
     </span>
   );

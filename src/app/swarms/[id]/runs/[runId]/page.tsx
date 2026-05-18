@@ -39,15 +39,14 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         <div className="ct-eyebrow">
           <Link
             href={`/swarms/${id}`}
-            style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
+            className="ct-breadcrumb-link"
           >
             ← Swarm
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
         <div
-          className="ct-card"
-          style={{ borderColor: "var(--ct-border-accent)" }}
+          className="ct-card ct-card--accent"
         >
           <div className="ct-card-title">Chargement échoué</div>
           <p className="ct-card-body">

@@ -5,6 +5,7 @@ import type { RunSummary } from "@/lib/crewai/types";
 import { formatDate } from "@/lib/utils/format";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { KickoffForm, type KickoffFormState } from "@/components/runs/KickoffForm";
+import { ChiefBriefWidget } from "@/components/crews/ChiefBriefWidget";
 
 const CREW_NAME = "chief-of-staff";
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
@@ -45,64 +46,76 @@ export default async function ChiefOfStaffPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <header className="mb-8 flex items-center justify-between">
+    <>
+      <Link href="/crews" className="ct-breadcrumb-link" style={{ fontSize: 13 }}>
+        ← Crews
+      </Link>
+
+      <div style={{ marginTop: 8, marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
-          <Link href="/crews" className="text-sm text-neutral-500 hover:underline">
-            ← Crews
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold">Daily Chief of Staff</h1>
-          <p className="text-sm text-neutral-600">
+          <h1 className="ct-title" style={{ marginBottom: 4 }}>Daily Chief of Staff</h1>
+          <p className="ct-sub" style={{ marginBottom: 0 }}>
             Inbox triage · classification · prioritization · drafts · daily summary
           </p>
         </div>
         <KickoffForm action={triggerKickoff} />
-      </header>
+      </div>
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          Recent runs
-        </h2>
+      <ChiefBriefWidget compact={true} />
+
+      <section style={{ marginTop: 24 }}>
+        <div className="ct-eyebrow">Runs récents</div>
+
         {listError ? (
-          <p className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            {listError}
-          </p>
+          <div
+            className="ct-card"
+            style={{
+              border: "1px solid rgba(225,29,72,0.55)",
+              background: "rgba(225,29,72,0.08)",
+            }}
+          >
+            <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
+              {listError}
+            </p>
+          </div>
         ) : runs.length === 0 ? (
-          <p className="rounded-md border border-neutral-200 p-4 text-sm text-neutral-500">
-            No runs yet. Trigger one above to get started.
-          </p>
+          <div className="ct-card">
+            <p className="ct-card-body">
+              Aucun run pour l&apos;instant. Déclenche un brief ci-dessus.
+            </p>
+          </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-neutral-200">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
+          <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
+            <table className="ct-table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3">Kickoff ID</th>
-                  <th className="px-4 py-3">Trigger</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Started</th>
-                  <th className="px-4 py-3">Finished</th>
+                  <th className="ct-th">Kickoff ID</th>
+                  <th className="ct-th">Trigger</th>
+                  <th className="ct-th">Status</th>
+                  <th className="ct-th">Démarré</th>
+                  <th className="ct-th">Terminé</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200">
+              <tbody>
                 {runs.map((r) => (
-                  <tr key={r.kickoff_id} className="hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-mono text-xs">
+                  <tr key={r.kickoff_id} className="ct-tr">
+                    <td className="ct-td" style={{ fontFamily: "monospace", fontSize: 11 }}>
                       <Link
                         href={`/crews/${CREW_NAME}/runs/${r.kickoff_id}`}
                         prefetch={false}
-                        className="text-blue-600 hover:underline"
+                        className="ct-link"
                       >
                         {r.kickoff_id.slice(0, 8)}…
                       </Link>
                     </td>
-                    <td className="px-4 py-3">{r.trigger}</td>
-                    <td className="px-4 py-3">
+                    <td className="ct-td">{r.trigger}</td>
+                    <td className="ct-td">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-neutral-600">
+                    <td className="ct-td" style={{ fontSize: 11 }}>
                       {formatDate(r.started_at)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-neutral-600">
+                    <td className="ct-td" style={{ fontSize: 11 }}>
                       {r.finished_at ? formatDate(r.finished_at) : "—"}
                     </td>
                   </tr>
@@ -112,6 +125,6 @@ export default async function ChiefOfStaffPage() {
           </div>
         )}
       </section>
-    </main>
+    </>
   );
 }

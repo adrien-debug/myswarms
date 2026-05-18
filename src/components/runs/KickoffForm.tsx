@@ -18,7 +18,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+      className="ct-primary-btn"
     >
       {pending ? "Running…" : "Run now"}
     </button>
@@ -29,12 +29,12 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
   const [state, formAction] = useActionState<KickoffFormState, FormData>(action, {});
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <form action={formAction} className="flex items-center gap-2">
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+      <form action={formAction} style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <select
           name="trigger"
           defaultValue="on_demand"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: 8, padding: "8px 12px", color: "var(--ct-text-primary)", fontSize: 13, fontFamily: "inherit" }}
         >
           <option value="on_demand">On-demand</option>
           <option value="morning">Morning</option>
@@ -46,7 +46,7 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
       {state.error ? (
         <p
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+          style={{ borderRadius: 8, border: "1px solid var(--ct-alert-error-border)", background: "var(--ct-alert-error-bg)", padding: "8px 12px", fontSize: 11, color: "var(--ct-alert-error-text)" }}
         >
           {state.error}
         </p>

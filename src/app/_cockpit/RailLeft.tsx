@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { FONT, SPACING } from "@/lib/ui/tokens";
+
+const NAV_BTN_SIZE = 40;
+const NAV_BTN_RADIUS = 10;
 
 interface NavEntry {
   href: string;
@@ -30,8 +34,8 @@ export function RailLeft() {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 8,
-          marginTop: 8,
+          gap: SPACING.sm,
+          marginTop: SPACING.sm,
         }}
       >
         {NAV.map((entry) => {
@@ -41,13 +45,13 @@ export function RailLeft() {
               : pathname?.startsWith(entry.href);
 
           const baseStyle: React.CSSProperties = {
-            width: 40,
-            height: 40,
-            borderRadius: 10,
+            width: NAV_BTN_SIZE,
+            height: NAV_BTN_SIZE,
+            borderRadius: NAV_BTN_RADIUS,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 16,
+            fontSize: FONT.lg,
             textDecoration: "none",
             background: isActive ? "var(--ct-accent-soft)" : "transparent",
             color: isActive

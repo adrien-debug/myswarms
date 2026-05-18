@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { SPACING } from "@/lib/ui/tokens";
 
 interface Tip {
   title: string;
@@ -55,8 +57,12 @@ const TIPS_BY_AREA: Record<string, Tip[]> = {
   ],
   crews: [
     {
-      title: "Legacy",
-      body: "Les Crews historiques restent disponibles (Daily Chief of Staff).",
+      title: "Brief du matin",
+      body: "Le scheduler tourne à 8h et 18h30. Tu peux aussi déclencher manuellement depuis la page Chief of Staff.",
+    },
+    {
+      title: "Digest Telegram",
+      body: "Après chaque run schedulé, le résumé arrive automatiquement sur ton Telegram.",
     },
   ],
 };
@@ -84,29 +90,13 @@ export function RailRight() {
         </button>
       </div>
       <div className="ct-rail-right-body">
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-            marginBottom: 12,
-          }}
-        >
-          Contexte · {area}
-        </div>
+        <SectionLabel text={`Contexte · ${area}`} mb={12} />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
           {tips.map((t) => (
             <div
               key={t.title}
-              style={{
-                background: "var(--ct-surface-1)",
-                border: "1px solid var(--ct-border)",
-                borderRadius: 8,
-                padding: 12,
-              }}
+              className="ct-card"
             >
               <div
                 style={{
@@ -132,8 +122,8 @@ export function RailRight() {
 
           <div
             style={{
-              marginTop: 12,
-              paddingTop: 12,
+              marginTop: SPACING.md,
+              paddingTop: SPACING.md,
               borderTop: "1px solid var(--ct-border-soft)",
               fontSize: 11,
               color: "var(--ct-text-muted)",
@@ -143,14 +133,14 @@ export function RailRight() {
             Besoin d&apos;aide ? Va sur{" "}
             <Link
               href="/swarms"
-              style={{ color: "var(--ct-accent-strong)" }}
+              className="ct-link"
             >
               /swarms
             </Link>
             {" "}pour la liste, ou{" "}
             <Link
               href="/swarms/new"
-              style={{ color: "var(--ct-accent-strong)" }}
+              className="ct-link"
             >
               /swarms/new
             </Link>

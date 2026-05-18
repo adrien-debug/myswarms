@@ -163,6 +163,15 @@ export function ArchitectModal({
             aria-label="Fermer la fenêtre de génération"
             onClick={onClose}
             disabled={pending}
+            style={{
+              width: 44,
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              flexShrink: 0,
+            }}
           >
             ✕
           </button>
@@ -305,7 +314,7 @@ const headerStyle: CSSProperties = {
 const labelStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: SPACING.xs + 2,
+  gap: SPACING.xxs,
 };
 
 const labelText: CSSProperties = {

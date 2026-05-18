@@ -117,7 +117,7 @@ export function SwarmAgentForm({
 const labelStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: SPACING.xs + 2,
+  gap: SPACING.xxs,
 };
 const labelText: React.CSSProperties = {
   fontSize: FONT.xs,

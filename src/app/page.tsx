@@ -4,6 +4,9 @@ import { getOwnerId } from "@/lib/auth/owner";
 import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { SwarmCard } from "@/components/swarms/SwarmCard";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { ChiefBriefWidget } from "@/components/crews/ChiefBriefWidget";
+import { SPACING } from "@/lib/ui/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -53,25 +56,18 @@ export default async function Home() {
         </div>
       ) : null}
 
+      <div className="ct-eyebrow" style={{ marginTop: 8 }}>Chief of Staff</div>
+      <ChiefBriefWidget />
+
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 16,
+          marginBottom: SPACING.lg,
         }}
       >
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-          }}
-        >
-          Swarms récents
-        </div>
+        <SectionLabel text="Swarms récents" />
         <Link href="/swarms" className="ct-seg-btn">
           Voir tout
         </Link>
@@ -82,7 +78,7 @@ export default async function Home() {
           <div className="ct-card-title">Démarre</div>
           <p className="ct-card-body">
             Pas encore de swarm.{" "}
-            <Link href="/swarms/new" style={{ color: "var(--ct-accent-strong)" }}>
+            <Link href="/swarms/new" className="ct-link">
               Crée ton premier swarm →
             </Link>
           </p>
@@ -91,9 +87,10 @@ export default async function Home() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 16,
-            marginBottom: 24,
+            // 260px : largeur minimale de card pour afficher nom + status sans troncature
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: SPACING.lg,
+            marginBottom: SPACING.xl,
           }}
         >
           {recent.map((s) => (
@@ -107,7 +104,7 @@ export default async function Home() {
         <div
           style={{
             display: "flex",
-            gap: 8,
+            gap: SPACING.sm,
             flexWrap: "wrap",
           }}
         >

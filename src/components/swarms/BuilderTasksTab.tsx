@@ -124,7 +124,7 @@ export function BuilderTasksTab({
                       : "agent non assigné"}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: SPACING.xs + 2 }}>
+                <div style={{ display: "flex", gap: SPACING.xxs }}>
                   <button
                     type="button"
                     className="ct-seg-btn"

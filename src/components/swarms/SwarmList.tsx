@@ -73,11 +73,8 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
               <td style={tdStyle}>
                 <Link
                   href={`/swarms/${s.id}`}
-                  style={{
-                    color: "var(--ct-text-strong)",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
+                  className="ct-link"
+                  style={{ fontWeight: 600 }}
                 >
                   {s.name}
                 </Link>

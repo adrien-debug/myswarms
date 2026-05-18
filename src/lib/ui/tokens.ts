@@ -10,6 +10,7 @@
 //   <div style={{ padding: SPACING.md, borderRadius: RADIUS.md, fontSize: FONT.base }} />
 
 export const SPACING = {
+  xxs: 6,
   xs: 4,
   sm: 8,
   md: 12,
@@ -40,6 +41,15 @@ export const LETTER_SPACING = {
   tight: "0.08em",
   wide: "0.14em",
 } as const;
+
+export const FONT_WEIGHT = {
+  regular: 400,
+  semibold: 600,
+  bold: 700,
+  extrabold: 800,
+} as const;
+
+export type FontWeight = keyof typeof FONT_WEIGHT;
 
 // Préfixe les types pour le DX (autocomplete IDE).
 export type Spacing = keyof typeof SPACING;

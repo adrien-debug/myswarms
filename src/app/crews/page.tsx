@@ -6,21 +6,44 @@ export const metadata = {
 
 export default function CrewsIndex() {
   return (
-    <main className="mx-auto max-w-3xl p-8">
-      <h1 className="text-2xl font-bold mb-6">Crews</h1>
-      <ul className="space-y-3">
-        <li>
+    <>
+      <div className="ct-eyebrow">Cockpit · Crews</div>
+      <h1 className="ct-title">Crews</h1>
+      <p className="ct-sub">Tes crews AI disponibles.</p>
+
+      <div className="ct-card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--ct-text-strong)",
+                marginBottom: 4,
+              }}
+            >
+              Daily Chief of Staff
+            </div>
+            <p className="ct-card-body" style={{ marginBottom: 0 }}>
+              Inbox triage · classification · prioritization · drafts · daily summary
+            </p>
+          </div>
           <Link
             href="/crews/chief-of-staff"
-            className="block rounded-lg border border-neutral-200 p-4 hover:bg-neutral-50 transition"
+            className="ct-seg-btn"
+            style={{ flexShrink: 0 }}
           >
-            <div className="font-semibold">Daily Chief of Staff</div>
-            <div className="text-sm text-neutral-600">
-              Inbox triage · classification · prioritization · drafts · daily summary
-            </div>
+            Ouvrir →
           </Link>
-        </li>
-      </ul>
-    </main>
+        </div>
+      </div>
+    </>
   );
 }

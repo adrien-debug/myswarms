@@ -32,15 +32,25 @@ export default async function RunDetailPage({ params }: PageProps) {
       notFound();
     }
     return (
-      <main className="mx-auto max-w-3xl p-8">
-        <Link href={`/crews/${CREW_NAME}`} className="text-sm text-neutral-500 hover:underline">
+      <>
+        <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: 13 }}>
           ← Daily Chief of Staff
         </Link>
-        <h1 className="mt-2 text-2xl font-bold">Run {runId.slice(0, 8)}…</h1>
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          Failed to load run: {err instanceof Error ? err.message : "unknown error"}
-        </p>
-      </main>
+        <h1 className="ct-title" style={{ marginTop: 8 }}>
+          Run {runId.slice(0, 8)}…
+        </h1>
+        <div
+          className="ct-card"
+          style={{
+            border: "1px solid rgba(225,29,72,0.55)",
+            background: "rgba(225,29,72,0.08)",
+          }}
+        >
+          <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
+            Impossible de charger le run : {err instanceof Error ? err.message : "erreur inconnue"}
+          </p>
+        </div>
+      </>
     );
   }
 
@@ -62,63 +72,112 @@ export default async function RunDetailPage({ params }: PageProps) {
       : "?";
 
   return (
-    <main className="mx-auto max-w-4xl p-8">
+    <>
       {/* Auto-refresh every 5s while the crew flow is running. Stops when status is terminal. */}
       <AutoRefresh active={run.status === "running"} seconds={5} />
-      <Link href={`/crews/${CREW_NAME}`} className="text-sm text-neutral-500 hover:underline">
+
+      <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: 13 }}>
         ← Daily Chief of Staff
       </Link>
-      <header className="mt-2 mb-6">
-        <h1 className="text-2xl font-bold font-mono">{runId.slice(0, 8)}…</h1>
-        <div className="mt-2 flex items-center gap-3 text-sm">
+
+      <div style={{ marginTop: 8, marginBottom: 24 }}>
+        <h1 className="ct-title" style={{ fontFamily: "monospace", marginBottom: 8 }}>
+          {runId.slice(0, 8)}…
+        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <StatusBadge status={run.status} size="md" />
-          <span className="text-neutral-500">·</span>
-          <span className="text-neutral-700">
-            trigger: <span className="font-mono">{triggerLabel}</span>
+          <span style={{ color: "var(--ct-text-muted)", fontSize: 13 }}>·</span>
+          <span style={{ fontSize: 13, color: "var(--ct-text-body)" }}>
+            trigger :{" "}
+            <span style={{ fontFamily: "monospace", color: "var(--ct-text-strong)" }}>
+              {triggerLabel}
+            </span>
           </span>
         </div>
-      </header>
+      </div>
 
-      <section className="mb-6 grid grid-cols-2 gap-4">
-        <Field label="Started at" value={formatDate(run.started_at, { withSeconds: true, withYear: true })} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
         <Field
-          label="Finished at"
-          value={run.finished_at ? formatDate(run.finished_at, { withSeconds: true, withYear: true }) : "—"}
+          label="Démarré à"
+          value={formatDate(run.started_at, { withSeconds: true, withYear: true })}
         />
-      </section>
+        <Field
+          label="Terminé à"
+          value={
+            run.finished_at
+              ? formatDate(run.finished_at, { withSeconds: true, withYear: true })
+              : "—"
+          }
+        />
+      </div>
 
-      <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          Result
-        </h2>
+      <div style={{ marginBottom: 24 }}>
+        <div className="ct-eyebrow">Résultat</div>
         {run.result ? (
-          <pre className="overflow-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-xs font-mono">
-            {resultPretty ?? run.result}
-          </pre>
+          <div className="ct-card" style={{ padding: 0 }}>
+            <pre
+              style={{
+                overflow: "auto",
+                padding: "16px 20px",
+                fontSize: 11,
+                fontFamily: "monospace",
+                color: "var(--ct-text-body)",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {resultPretty ?? run.result}
+            </pre>
+          </div>
         ) : (
-          <p className="text-sm text-neutral-500">No result yet.</p>
+          <p className="ct-placeholder">Pas encore de résultat.</p>
         )}
-      </section>
+      </div>
 
       {statePretty && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-            State
-          </h2>
-          <pre className="overflow-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-xs font-mono">
-            {statePretty}
-          </pre>
-        </section>
+        <div>
+          <div className="ct-eyebrow">State</div>
+          <div className="ct-card" style={{ padding: 0 }}>
+            <pre
+              style={{
+                overflow: "auto",
+                padding: "16px 20px",
+                fontSize: 11,
+                fontFamily: "monospace",
+                color: "var(--ct-text-body)",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {statePretty}
+            </pre>
+          </div>
+        </div>
       )}
-    </main>
+    </>
   );
 }
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="mt-1 text-sm font-mono">{value}</div>
+    <div className="ct-card" style={{ marginBottom: 0 }}>
+      <div className="ct-card-title">{label}</div>
+      <div
+        style={{
+          fontSize: 13,
+          fontFamily: "monospace",
+          color: "var(--ct-text-primary)",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
