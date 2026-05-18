@@ -20,10 +20,12 @@ interface Props {
 export function DecisionCard({ p0Item, draftText, runId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState<"snoozed" | "rejected" | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const handleDecision = async (action: "snoozed" | "rejected") => {
     if (!runId || loading) return;
     setLoading(action);
+    setDecisionError(null);
     try {
       const payload: Record<string, unknown> = { kickoff_id: runId, action };
       if (action === "snoozed") payload.snooze_hours = DEFAULT_SNOOZE_HOURS;
@@ -36,7 +38,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
       router.refresh();
     } catch (err) {
       console.error("Decision failed:", err);
-      alert(`Échec de l'action ${action}`);
+      setDecisionError(`Échec de l'action ${action}`);
     } finally {
       setLoading(null);
     }
@@ -224,6 +226,23 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           }}
         >
           (Aucun brouillon — relancer un run avec AGENT_MOCK_MODE=false)
+        </div>
+      )}
+
+      {/* Erreur décision */}
+      {decisionError && (
+        <div
+          role="alert"
+          style={{
+            padding: `${SPACING.xs}px ${SPACING.md}px`,
+            borderRadius: RADIUS.sm,
+            background: "var(--ct-alert-error-bg)",
+            border: "1px solid var(--ct-alert-error-border)",
+            color: "var(--ct-alert-error-text)",
+            fontSize: FONT.sm,
+          }}
+        >
+          {decisionError}
         </div>
       )}
 

@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
  * (https://app.supabase.com/project/fxeibmjebvxtoazuyyvz/auth/users).
  * MySwarms est single-user — aucune page signup publique.
  */
-export function LoginForm() {
+export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,9 +36,9 @@ export function LoginForm() {
     }
 
     // Rafraîchir le Server Component pour que le middleware voie la session,
-    // puis rediriger vers l'accueil.
+    // puis rediriger vers la page demandée (ou l'accueil par défaut).
     router.refresh();
-    router.replace("/");
+    router.replace(returnTo);
   }
 
   return (

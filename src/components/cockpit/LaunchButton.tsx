@@ -20,11 +20,22 @@ export function LaunchButton() {
   }, []);
 
   useEffect(() => {
-    // setTimeout 0 évite l'appel synchrone setState-in-effect (react-hooks/no-direct-set-state-in-useeffect)
+    if (status === "up") return;
+    // setTimeout 0 évite l'appel synchrone setState-in-effect
     const t = setTimeout(checkStatus, 0);
     const interval = setInterval(checkStatus, 5000);
-    return () => { clearTimeout(t); clearInterval(interval); };
-  }, [checkStatus]);
+
+    const handleVisibility = () => {
+      if (document.hidden) clearInterval(interval);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [checkStatus, status]);
 
   const handleLaunch = async () => {
     if (status === "up" || loading) return;

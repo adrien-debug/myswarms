@@ -16,14 +16,16 @@
     "electron:publish": "tsc -p electron && npm run electron:assets && electron-builder --publish always"
   },
   "dependencies": {
-    "@hearst/hub-sdk": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation /packages/hub-sdk",
+    "@hearst/cockpit-shell": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation/hub — Hearst-Hub/packages/cockpit-shell/hearst-cockpit-shell-0.1.0.tgz",
+    "@hearst/hub-sdk": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation/hub — Hearst-Hub/packages/hub-sdk/hearst-hub-sdk-0.1.0.tgz",
+    "dompurify": "^3.2.0",
+    "openai": "^6.38.0",
     "@hookform/resolvers": "^5.2.2",
     "@sentry/nextjs": "^10.53.1",
     "@supabase/ssr": "^0.10.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
     "next": "16.2.6",
-    "openai": "^6.38.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.76.0",
@@ -31,6 +33,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@types/dompurify": "^3.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

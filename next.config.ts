@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   async headers() {
     // En dev local, on autorise l'embed dans le hub Hearst (localhost:4200/4201)
     // pour que les <webview> Electron puissent charger Hive.

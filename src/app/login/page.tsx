@@ -11,7 +11,13 @@ export const metadata = {
  * (https://app.supabase.com/project/fxeibmjebvxtoazuyyvz/auth/users).
  * MySwarms est mono-utilisateur, accès restreint.
  */
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ returnTo?: string }>;
+}) {
+  const params = await searchParams;
+  const returnTo = params?.returnTo ?? "/";
   return (
     <div
       style={{
@@ -94,7 +100,7 @@ export default function LoginPage() {
           Accès restreint — authentification requise.
         </p>
 
-        <LoginForm />
+        <LoginForm returnTo={returnTo} />
       </div>
     </div>
   );
