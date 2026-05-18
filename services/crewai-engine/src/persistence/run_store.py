@@ -41,8 +41,15 @@ def save_run(
     trigger: str,
     status: str = "running",
     started_at: str | None = None,
+    owner_id: str | None = None,
 ) -> bool:
-    """Insert a new run record. Returns True on success, False on failure/no-op."""
+    """Insert a new run record. Returns True on success, False on failure/no-op.
+
+    `owner_id` is written to `chief_run_log.owner_id` (migration 0015).
+    The engine uses SUPABASE_SERVICE_ROLE_KEY (bypasses RLS) so explicit
+    owner_id insertion is required for proper multi-tenant scoping.
+    Passing owner_id=None preserves legacy behaviour (nullable column).
+    """
     client = _get_client()
     if client is None:
         return False
@@ -53,6 +60,8 @@ def save_run(
             "status": status,
             "started_at": started_at or datetime.now(timezone.utc).isoformat(),
         }
+        if owner_id is not None:
+            payload["owner_id"] = owner_id
         client.table("chief_run_log").insert(payload).execute()
         return True
     except Exception as exc:  # noqa: BLE001
@@ -100,42 +109,59 @@ def update_run(
         return False
 
 
-def get_run(kickoff_id: str) -> dict[str, Any] | None:
-    """Fetch a run by kickoff_id. Returns None on miss or failure."""
+def get_run(
+    kickoff_id: str,
+    owner_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Fetch a run by kickoff_id. Returns None on miss or failure.
+
+    If `owner_id` is provided, adds an explicit `.eq("owner_id", owner_id)`
+    filter — required because the engine bypasses RLS (service-role key).
+    Passing owner_id=None returns the run regardless of ownership (legacy).
+    """
     client = _get_client()
     if client is None:
         return None
     try:
-        result = (
+        query = (
             client.table("chief_run_log")
             .select("*")
             .eq("kickoff_id", kickoff_id)
-            .maybe_single()
-            .execute()
         )
+        if owner_id is not None:
+            query = query.eq("owner_id", owner_id)
+        result = query.maybe_single().execute()
         return result.data if result else None
     except Exception as exc:  # noqa: BLE001
         logger.error("get_run failed for %s: %s", kickoff_id, exc)
         return None
 
 
-def list_runs(limit: int = 20) -> list[dict[str, Any]]:
+def list_runs(
+    limit: int = 20,
+    owner_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Fetch the most recent runs (ordered by started_at desc). Returns [] on failure.
 
-    # V2 single-user : chief_run_log n'a pas de colonne owner_id ; scoping owner = dette V2 (cf. src/lib/auth/owner.ts)
+    If `owner_id` is provided, adds an explicit `.eq("owner_id", owner_id)`
+    filter — required because the engine bypasses RLS (service-role key).
+    Scoping is real since migration 0015 added `owner_id` to `chief_run_log`.
+    Passing owner_id=None returns all runs regardless of ownership (legacy).
     """
     client = _get_client()
     if client is None:
         return []
     try:
-        result = (
+        query = (
             client.table("chief_run_log")
             .select("kickoff_id,trigger,status,started_at,finished_at,result")
             .order("started_at", desc=True)
             .limit(limit)
-            .execute()
         )
+        if owner_id is not None:
+            query = query.eq("owner_id", owner_id)
+        result = query.execute()
         return result.data if result else []
     except Exception as exc:  # noqa: BLE001
-        logger.warning("list_runs failed: %s", exc)
+        logger.error("list_runs failed: %s", exc)
         return []

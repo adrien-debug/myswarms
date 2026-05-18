@@ -7,7 +7,7 @@
 - Mode **autonomie totale** : tu exécutes, tu ne demandes pas confirmation pour chaque étape.
 
 ## Stack
-- **Web** : Next.js 16 (App Router, src/) + React 19 + Tailwind 4 — port `3000`
+- **Web** : Next.js 16 (App Router, src/) + React 19 + Tailwind 4 — port `3333` (script `next dev -p 3333`)
 - **API/Backend** : routes Next.js (`src/app/api/...`) — fallback port `3001` si extraction
 - **DB** : Supabase Postgres 17 — projet ref `fxeibmjebvxtoazuyyvz`
 - **Cache/Queue** : Upstash Redis REST (fallback — Railway Redis non provisionné, CLI v4.36 bug)
@@ -42,7 +42,7 @@ uv sync
 uv run uvicorn src.main:app --reload --port 8000
 ```
 
-Le frontend Next.js (port 3000) appelle automatiquement le microservice si `CREWAI_ENGINE_URL=http://localhost:8000` dans `.env.local`.
+Le frontend Next.js (port 3333) appelle automatiquement le microservice si `CREWAI_ENGINE_URL=http://localhost:8000` dans `.env.local`.
 
 ### Doc CrewAI
 
@@ -106,19 +106,23 @@ Doc complète : [docs/api-config/SERVICES.md](docs/api-config/SERVICES.md) secti
 
 ## 🤖 Stack LLM — règle absolue
 
-MySwarms a **3 providers LLM configurés** dans `.env.local`. Tout agent LLM DOIT utiliser ces credentials.
+MySwarms utilise **Hypercli (Kimi K2.6) comme unique provider LLM** pour le chat, l'orchestration et les agents. Tout agent LLM DOIT utiliser ces credentials.
 
-| Provider | Variable env | Usage par défaut | SDK |
+| Provider | Variable env | Usage | SDK |
 |---|---|---|---|
-| **Claude (Anthropic)** | `ANTHROPIC_API_KEY` | LLM principal — chat, orchestration, agents | `@anthropic-ai/sdk` |
-| **OpenAI** | `OPENAI_API_KEY` | Embeddings (`text-embedding-3-small`), fallback chat | `openai` |
-| **Hypercli (Kimi K2.6)** | `HYPERCLI_API_KEY` + `HYPERCLI_BASE_URL` | Modèle alternatif open-source — coding/agents, contexte 256k | `openai` ou `@anthropic-ai/sdk` (drop-in) |
+| **Hypercli (Kimi K2.6)** | `HYPERCLI_API_KEY` + `HYPERCLI_BASE_URL` + `HYPERCLI_DEFAULT_MODEL` | **Unique provider LLM** — chat, orchestration, agents, embeddings | `openai` (endpoint OpenAI-compatible) |
 
-### Hypercli — drop-in obligatoire
+> `ANTHROPIC_API_KEY` et `OPENAI_API_KEY` peuvent rester vides. Les SDK Anthropic et OpenAI ne sont **pas utilisés** pour le chat ou les agents dans ce projet.
 
-L'API Hypercli est **OpenAI et Anthropic compatible**. Aucun SDK custom. Réutiliser les SDK existants en changeant juste `baseURL` :
+### Variables d'environnement
 
-**OpenAI-style (chat completions)** :
+```
+HYPERCLI_API_KEY=<secret>
+HYPERCLI_BASE_URL=https://api.hypercli.com/v1
+HYPERCLI_DEFAULT_MODEL=kimi-k2.6
+```
+
+### Côté Next.js — client OpenAI-compatible
 
 ```typescript
 // src/lib/llm/kimi.ts
@@ -135,45 +139,42 @@ const response = await kimi.chat.completions.create({
 });
 ```
 
-**Anthropic-style (messages API)** :
+### Côté moteur CrewAI Python — litellm via crewai.LLM
 
-```typescript
-// src/lib/llm/kimi-anthropic.ts
-import Anthropic from "@anthropic-ai/sdk";
+```python
+# services/crewai-engine/src/
+import os
+from crewai import LLM
 
-export const kimiAnthropic = new Anthropic({
-  apiKey: process.env.HYPERCLI_API_KEY!,
-  baseURL: process.env.HYPERCLI_BASE_URL!,
-});
-
-const response = await kimiAnthropic.messages.create({
-  model: process.env.HYPERCLI_ANTHROPIC_MODEL!, // kimi-k2.6-anthropic
-  max_tokens: 4096,
-  messages: [{ role: "user", content: "..." }],
-});
+llm = LLM(
+    model="openai/kimi-k2.6",          # préfixe openai/ car endpoint OpenAI-compatible (litellm)
+    base_url=os.getenv("HYPERCLI_BASE_URL"),
+    api_key=os.getenv("HYPERCLI_API_KEY"),
+)
 ```
 
-### Quand utiliser quel modèle ?
+### Embeddings
 
-- **Claude (par défaut)** : tout code applicatif user-facing, agents production, tool use, fonctionnalités critiques.
-- **Hypercli Kimi K2.6** : tâches coding heavy (Kimi K2.6 leader open-source coding 2026), A/B tests, dev tooling, fallback si quota Claude atteint, opérations longues bénéficiant du contexte 256k.
-- **OpenAI** : exclusivement pour embeddings (`text-embedding-3-small`, 1536d) — pas pour chat sauf fallback ultime.
+Embeddings via Hypercli modèle `qwen3-embedding-4b` (endpoint OpenAI-compatible, champ `model`). Plus de dépendance `text-embedding-3-small` OpenAI pour le chemin nominal. Si Hypercli est indisponible et qu'un embedding est requis, marquer en TODO — ne pas réintroduire OpenAI par défaut.
 
 ### Modèles Hypercli disponibles
 
 `kimi-k2.6` · `kimi-k2.6-anthropic` · `kimi-k2.5` · `kimi-k2.5-anthropic` · `glm-5` · `minimax-m2.5` · `qwen3-embedding-4b`
 
+### Historique
+
+Hypercli avait été écarté en N-1 (empty-responses / 404 / timeouts observés sur le crew 8 agents séquentiels du Chief of Staff). Ré-adopté sur directive explicite — **surveiller la fiabilité du crew Chief of Staff** en production et consigner tout incident dans Langfuse.
+
 ### Règles strictes
 
-- **JAMAIS** hardcoder une clé API dans le code — toujours `process.env.X`.
-- **JAMAIS** créer un client LLM sans passer par `src/lib/llm/` (factory centralisée).
+- **JAMAIS** hardcoder une clé API dans le code — toujours `process.env.X` (Next.js) ou `pydantic_settings` BaseSettings + `os.getenv()` (Python).
+- **JAMAIS** créer un client LLM sans passer par `src/lib/llm/` (factory centralisée côté TS).
 - **JAMAIS** appeler un provider non listé sans validation explicite d'Adrien.
 - Tracer chaque run LLM (model, tokens, latency, cost) dans Langfuse via les vars `LANGFUSE_*`.
-- Si une requête Claude échoue (429, 500), fallback **automatique** vers Hypercli Kimi K2.6.
 
 ## Commandes
 
-- `npm run dev` — Next dev sur port 3000
+- `npm run dev` — Next dev sur port 3333
 - `npm run build` — build prod
 - `npm run lint` — ESLint
 - `npm run electron:dev` — Electron desktop (après scaffold `/electron`)

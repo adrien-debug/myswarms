@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { crewaiClient, CrewaiEngineError } from "@/lib/crewai/client";
 import { formatDate } from "@/lib/utils/format";
 import { isValidUuidV4 } from "@/lib/utils/uuid";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { FONT, SPACING } from "@/lib/ui/tokens";
+import { requireOwnerId } from "@/lib/auth/owner";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -18,6 +19,13 @@ interface PageProps {
 export default async function RunDetailPage({ params }: PageProps) {
   const { runId } = await params;
 
+  let ownerId: string;
+  try {
+    ownerId = await requireOwnerId();
+  } catch {
+    redirect("/login");
+  }
+
   // Validate UUID v4 format before hitting microservice.
   // Defense-in-depth: the microservice's Pydantic UUID type also validates,
   // but blocking here avoids unnecessary network calls + clarifies the contract.
@@ -27,7 +35,7 @@ export default async function RunDetailPage({ params }: PageProps) {
 
   let run;
   try {
-    run = await crewaiClient.status(CREW_NAME, runId);
+    run = await crewaiClient.status(CREW_NAME, runId, { ownerId });
   } catch (err) {
     if (err instanceof CrewaiEngineError && err.status === 404) {
       notFound();

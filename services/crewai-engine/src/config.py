@@ -110,6 +110,12 @@ class Settings(BaseSettings):
     # Security level (1-5). Default 2: drafts prepared, no auto-send.
     SECURITY_LEVEL: int = Field(default=2, ge=1, le=5)
 
+    # ── Scheduler — owner attribution ────────────────────────────────────
+    # owner_id attribué aux runs Chief planifiés (cron).
+    # = UUID auth.users du propriétaire principal (valeur du backfill migration 0015).
+    # Override via env si autre destinataire. Identifiant d'identité (non secret).
+    CHIEF_SCHEDULER_OWNER_ID: str = "e0a983da-536f-4dad-a205-861acbae9468"
+
     # ── APScheduler ─────────────────────────────────────────────────────
     SCHEDULER_ENABLED: bool = True
     MORNING_HOUR: int = Field(default=8, ge=0, le=23)
@@ -139,15 +145,31 @@ settings = Settings()
 # ── Boot-time misconfig warnings ─────────────────────────────────────────────
 # Ne cassent PAS le boot — logging uniquement. Permet d'identifier les
 # configurations partielles avant que les agents tombent en erreur à l'exécution.
+#
+# Politique Hypercli-only : HYPERCLI_API_KEY est désormais la seule clé LLM
+# critique. ANTHROPIC_API_KEY et OPENAI_API_KEY sont optionnelles (abaissées
+# en info) — aucun chemin de production ne devrait les appeler directement.
+# COMPOSIO_API_KEY reste critique (tools Composio indépendants du provider LLM).
 _CRITICAL_API_KEYS = {
-    "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
-    "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+    "HYPERCLI_API_KEY": settings.HYPERCLI_API_KEY,
     "COMPOSIO_API_KEY": settings.COMPOSIO_API_KEY,
 }
 for _key, _val in _CRITICAL_API_KEYS.items():
     if not _val:
         _boot_logger.warning(
             "Boot misconfiguration: %s is empty — agents using this provider will fail at runtime.",
+            _key,
+        )
+
+# Clés optionnelles (plus utilisées en production — Hypercli-only) : simple info.
+_OPTIONAL_API_KEYS = {
+    "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
+    "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+}
+for _key, _val in _OPTIONAL_API_KEYS.items():
+    if not _val:
+        _boot_logger.info(
+            "Boot info: %s is empty (optional — Hypercli-only policy, no LLM call expected on this provider).",
             _key,
         )
 

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { crewaiClient } from "@/lib/crewai/client";
 import type { RunSummary } from "@/lib/crewai/types";
 import { formatDate } from "@/lib/utils/format";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { FONT, SPACING } from "@/lib/ui/tokens";
+import { requireOwnerId } from "@/lib/auth/owner";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -11,10 +13,17 @@ export const metadata = { title: "Historique des runs — Chief of Staff — mys
 export const dynamic = "force-dynamic";
 
 export default async function ChiefOfStaffHistoryPage() {
+  let ownerId: string;
+  try {
+    ownerId = await requireOwnerId();
+  } catch {
+    redirect("/login");
+  }
+
   let runs: RunSummary[] = [];
   let listError: string | null = null;
   try {
-    runs = await crewaiClient.listRuns(CREW_NAME, 20);
+    runs = await crewaiClient.listRuns(CREW_NAME, 20, { ownerId });
   } catch (err) {
     listError = err instanceof Error ? err.message : "Failed to load runs";
   }

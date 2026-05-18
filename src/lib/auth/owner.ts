@@ -1,75 +1,57 @@
 /**
- * Auth helper — V1 single-user stub.
+ * Auth helper — session Supabase réelle via @supabase/ssr.
  *
- * ⚠️ DETTE TECHNIQUE V2 ⚠️
- * MySwarms est volontairement single-user en V1 pour démêler l'orchestration
- * CrewAI sans bloquer sur la pile auth complète. Ce helper retourne juste
- * `process.env.DEV_OWNER_ID` (ou `null` si non défini), ce qui permet :
- *   - de scoper localement les requêtes engine avec un owner_id stable
- *     (utile pour le seed Chief of Staff + tests bout-en-bout),
- *   - de garder le comportement actuel inchangé si la var n'est pas set.
+ * getOwnerId() lit la session Supabase serveur et retourne l'UUID de l'utilisateur
+ * connecté, ou null si aucune session n'est active. Fail-closed strict : aucun
+ * fallback env en production (le DEV_OWNER_ID stub a été retiré — le middleware
+ * protège toutes les routes et garantit qu'un user est toujours présent).
  *
- * ⚠️ RISQUE IDOR SI DEV_OWNER_ID EST ABSENT ⚠️
- * Si `DEV_OWNER_ID` n'est pas définie dans `.env.local`, cette fonction retourne
- * `null`. Côté engine Python (`src/routes/swarms.py`), un `owner_id` null désactive
- * le filtre par owner → n'importe quel run peut lire/modifier les données de tous
- * les owners (équivalent service-role sans scoping). DEV_OWNER_ID DOIT être set
- * à un UUID v4 fixe en développement. Voir `.env.local`.
+ * requireOwnerId() appelle getOwnerId() et throw OwnerAuthError si null —
+ * contrat inchangé pour tous les call-sites existants (routes API, pages SSR).
  *
- * V2 — à remplacer par une vraie session Supabase via `@supabase/ssr` :
- *
- *   import { createServerClient } from "@supabase/ssr";
- *   import { cookies } from "next/headers";
- *   export async function getOwnerId(): Promise<string | null> {
- *     const supabase = createServerClient(URL, KEY, { cookies: cookies() });
- *     const { data: { user } } = await supabase.auth.getUser();
- *     return user?.id ?? null;
- *   }
- *
- * Tous les call-sites (`src/app/api/swarms/**`, `src/app/api/tools/route.ts`)
- * sont déjà câblés pour propager `owner_id` à l'engine via `?owner_id=` —
- * il suffira de remplacer le contenu de cette fonction.
- *
- * Voir aussi : `services/crewai-engine/src/routes/swarms.py` (filtre owner_id côté Python).
+ * Voir : src/middleware.ts (updateSession — refresh session à chaque requête)
+ *        src/lib/supabase/server.ts (createClient — client Supabase serveur)
+ *        src/app/login/ (formulaire connexion email/password)
+ *        src/app/auth/signout/route.ts (déconnexion)
  */
 
+import { createClient } from "@/lib/supabase/server";
+
 /**
- * Erreur typée levée par `requireOwnerId()` quand aucun owner n'est résolu.
- * Les routes critiques doivent catcher cette erreur et répondre 401.
+ * Erreur levée par requireOwnerId() quand aucune session n'est active.
+ * Les route handlers attrapent cette classe et retournent 401.
+ * Signature publique inchangée — ne pas modifier.
  */
 export class OwnerAuthError extends Error {
-  constructor(message = "Owner not resolved — DEV_OWNER_ID absent ou session invalide") {
+  constructor(message = "Unauthorized — no active session") {
     super(message);
     this.name = "OwnerAuthError";
   }
 }
 
 /**
- * Retourne l'owner_id ou retourne null.
- * Utiliser uniquement pour les usages non-critiques (ex. clé de rate-limit).
- * Pour les opérations data-scopées, préférer `requireOwnerId()`.
+ * Retourne l'UUID de l'utilisateur Supabase connecté, ou null si déconnecté.
+ *
+ * Utilise getUser() (vérification serveur cryptographique) plutôt que getSession()
+ * (lecture cookie non vérifiée) — cf. recommandation officielle Supabase.
+ *
+ * Signature : Promise<string | null> — inchangée.
  */
 export async function getOwnerId(): Promise<string | null> {
-  // V1 single-user : owner_id stub depuis env.
-  // DEV_OWNER_ID DOIT être set dans .env.local (UUID v4 fixe) — sinon IDOR.
-  // V2 TODO : remplacer par session Supabase via @supabase/ssr.
-  return process.env.DEV_OWNER_ID ?? null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
 }
 
 /**
- * Retourne l'owner_id ou throw OwnerAuthError (jamais null/undefined/'').
+ * Retourne l'UUID de l'utilisateur connecté ou throw OwnerAuthError.
  *
- * Pattern d'usage dans les routes critiques :
+ * À utiliser dans toutes les routes API qui requièrent une authentification.
+ * Signature : Promise<string> — inchangée.
  *
- *   try {
- *     const ownerId = await requireOwnerId();
- *     // ... opération scopée par owner
- *   } catch (err) {
- *     if (err instanceof OwnerAuthError) {
- *       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
- *     }
- *     throw err;
- *   }
+ * @throws {OwnerAuthError} si aucune session active.
  */
 export async function requireOwnerId(): Promise<string> {
   const id = await getOwnerId();

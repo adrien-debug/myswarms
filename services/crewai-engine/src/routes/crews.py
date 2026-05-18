@@ -166,13 +166,11 @@ async def kickoff(
     The flow executes in a background asyncio task — poll /status/{kickoff_id} for progress.
     Decoupling the response from flow completion avoids HTTP timeouts (Vercel 10s, browser 30s).
 
-    `owner_id` is propagated from Next.js for future multi-tenant scoping ; V1 is
-    single-user so we just log it (no-op).
+    `owner_id` is propagated from Next.js and written to `chief_run_log.owner_id`
+    (migration 0015). Explicit scoping is required because the engine bypasses RLS
+    via SUPABASE_SERVICE_ROLE_KEY.
     """
-    logger.debug(
-        "chief-of-staff received owner_id=%s (V1 single-user, scoping no-op)",
-        owner_id,
-    )
+    logger.debug("chief-of-staff kickoff owner_id=%s", owner_id)
     _check_rate_limit()
 
     kickoff_id = str(uuid4())
@@ -187,8 +185,9 @@ async def kickoff(
         "state": None,
     }
 
-    # Persist to Supabase (fail-soft — in-memory _runs remains the primary store for this process)
-    run_store.save_run(kickoff_id, request.trigger, "running", started_at)
+    # Persist to Supabase — owner_id written to chief_run_log.owner_id (migration 0015).
+    # Fail-soft: in-memory _runs remains the primary store for this process.
+    run_store.save_run(kickoff_id, request.trigger, "running", started_at, owner_id=owner_id)
 
     # Build initial state with allowlist override merge.
     # chief_run_id injected here so the flow can pass it to create_daily_chief_crew()
@@ -225,18 +224,17 @@ def status(
 ) -> StatusResponse:
     """Return status and result for a given kickoff_id. FastAPI validates UUID format → 422 if malformed.
 
-    `owner_id` is propagated from Next.js for future multi-tenant scoping ; V1 is
-    single-user so we just log it (no-op).
+    `owner_id` is propagated from Next.js and used to scope the Supabase fallback
+    lookup — if provided, only runs belonging to this owner are returned (migration
+    0015 scoping via explicit `.eq("owner_id", owner_id)` since the engine bypasses RLS).
     """
-    logger.debug(
-        "chief-of-staff received owner_id=%s (V1 single-user, scoping no-op)",
-        owner_id,
-    )
+    logger.debug("chief-of-staff status owner_id=%s", owner_id)
     kid = str(kickoff_id)
     run = _runs.get(kid)
     if run is None:
-        # Fallback to Supabase — handles pod restarts where in-memory store is lost
-        db_run = run_store.get_run(kid)
+        # Fallback to Supabase — handles pod restarts where in-memory store is lost.
+        # owner_id scopes the query to prevent cross-tenant data leakage.
+        db_run = run_store.get_run(kid, owner_id=owner_id)
         if db_run is None:
             raise HTTPException(status_code=404, detail=f"kickoff_id {kid!r} not found")
         # Map DB column names to StatusResponse fields.
@@ -258,12 +256,16 @@ def status(
 @router.get("/runs")
 def list_runs_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
+    owner_id: str | None = Query(default=None),
 ) -> list[dict]:
-    """List recent runs from Supabase. Returns empty list if Supabase not configured.
+    """List recent Chief of Staff runs from Supabase.
 
-    # V2 single-user : chief_run_log n'a pas de colonne owner_id ; scoping owner = dette V2 (cf. src/lib/auth/owner.ts)
+    If `owner_id` is provided, filters rows to that owner via an explicit
+    `.eq("owner_id", owner_id)` — required because the engine bypasses RLS
+    (service-role key). Scoping is real since migration 0015 added `owner_id`
+    to `chief_run_log`. Returns empty list if Supabase is not configured.
     """
-    return run_store.list_runs(limit=limit)
+    return run_store.list_runs(limit=limit, owner_id=owner_id)
 
 
 @router.get("/runs/{kickoff_id}/steps")

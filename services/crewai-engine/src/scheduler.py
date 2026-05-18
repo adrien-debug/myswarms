@@ -32,7 +32,13 @@ async def _run_scheduled_kickoff(trigger: str) -> None:
         kickoff_id = str(uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
 
-        run_store.save_run(kickoff_id, trigger, "running", started_at)
+        run_store.save_run(
+            kickoff_id,
+            trigger,
+            "running",
+            started_at,
+            owner_id=settings.CHIEF_SCHEDULER_OWNER_ID or None,
+        )
 
         flow = ChiefOfStaffFlow()
         result = await asyncio.wait_for(

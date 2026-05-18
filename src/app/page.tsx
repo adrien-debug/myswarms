@@ -11,6 +11,7 @@ import { AgentDiff } from "@/components/crews/AgentDiff";
 import { DayTimeline } from "@/components/crews/DayTimeline";
 import { ProductBets } from "@/components/crews/ProductBets";
 import { SPACING, FONT } from "@/lib/ui/tokens";
+import { requireOwnerId } from "@/lib/auth/owner";
 
 const CREW_NAME = "chief-of-staff";
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
@@ -42,10 +43,17 @@ export const metadata = { title: "MySwarms · Daily Chief of Staff" };
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  let ownerId: string;
+  try {
+    ownerId = await requireOwnerId();
+  } catch {
+    redirect("/login");
+  }
+
   let runs: RunSummary[] = [];
   let listError: string | null = null;
   try {
-    runs = await crewaiClient.listRuns("chief-of-staff", 1);
+    runs = await crewaiClient.listRuns("chief-of-staff", 1, { ownerId });
   } catch (err) {
     listError = err instanceof Error ? err.message : "Failed to load runs";
   }
@@ -59,8 +67,8 @@ export default async function Home() {
   if (latestRun) {
     try {
       [steps, decisions] = await Promise.all([
-        crewaiClient.listSteps("chief-of-staff", latestRun.kickoff_id),
-        crewaiClient.listDecisions("chief-of-staff", latestRun.kickoff_id),
+        crewaiClient.listSteps("chief-of-staff", latestRun.kickoff_id, { ownerId }),
+        crewaiClient.listDecisions("chief-of-staff", latestRun.kickoff_id, { ownerId }),
       ]);
     } catch (err) {
       partialDataError = err instanceof Error ? err.message : "Données partielles indisponibles";
