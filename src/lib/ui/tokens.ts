@@ -35,7 +35,7 @@ export const RADIUS = {
 export const FONT = {
   nano: 9,  // label micro (icône-only, status dot)
   xxs: 11,  // légendes compactes (table header réduit)
-  xs: 11,
+  xs: 10,
   sm: 12,
   base: 13,
   md: 14,
