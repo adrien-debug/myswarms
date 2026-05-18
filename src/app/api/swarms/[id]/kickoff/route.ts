@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { SwarmKickoffRequestSchema } from "@/lib/forms/swarmSchemas";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
+import { checkBodySize } from "@/lib/utils/body-limit";
 import { isValidUuid } from "@/lib/utils/uuid";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ export async function POST(
   req: NextRequest,
   { params }: RouteContext,
 ): Promise<NextResponse> {
+  const sizeError = checkBodySize(req);
+  if (sizeError) return sizeError;
+
   const { id } = await params;
   if (!isValidUuid(id)) {
     return NextResponse.json({ error: "Invalid swarm id" }, { status: 400 });
@@ -35,10 +39,13 @@ export async function POST(
   }
 
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const result = await swarmsClient.kickoff(id, parsed.data, ownerId);
     return NextResponse.json(result, { status: 202 });
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (err instanceof SwarmEngineError) {
       if (err.status >= 400 && err.status < 500) {
         return NextResponse.json(

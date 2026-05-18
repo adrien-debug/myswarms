@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { isValidUuid } from "@/lib/utils/uuid";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +18,13 @@ export async function GET(
     return NextResponse.json({ error: "Invalid id format" }, { status: 400 });
   }
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const run = await swarmsClient.status(id, runId, ownerId);
     return NextResponse.json(run);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (err instanceof SwarmEngineError) {
       if (err.status >= 400 && err.status < 500) {
         return NextResponse.json(

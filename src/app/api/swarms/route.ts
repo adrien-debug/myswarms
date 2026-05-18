@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { swarmsClient } from "@/lib/crewai/swarms";
 import { SwarmInputSchema } from "@/lib/forms/swarmSchemas";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { checkBodySize } from "@/lib/utils/body-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const swarms = await swarmsClient.list(ownerId);
     return NextResponse.json(swarms);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });
   }
@@ -37,10 +40,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const swarm = await swarmsClient.create(parsed.data, ownerId);
     return NextResponse.json(swarm, { status: 201 });
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });
   }

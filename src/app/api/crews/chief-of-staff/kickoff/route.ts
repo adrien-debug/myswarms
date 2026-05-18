@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { crewaiClient, CrewaiEngineError } from "@/lib/crewai/client";
 import { CrewKickoffRequestSchema } from "@/lib/crewai/types";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { checkBodySize } from "@/lib/utils/body-limit";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const result = await crewaiClient.kickoff(
       "chief-of-staff",
       parsed.data,
@@ -37,6 +37,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(result, { status: 202 });
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (err instanceof CrewaiEngineError) {
       // Propage tout 4xx (auth, validation, conflit, rate limit, etc.) tel quel.
       if (err.status >= 400 && err.status < 500) {

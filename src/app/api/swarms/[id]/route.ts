@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { SwarmPatchSchema } from "@/lib/forms/swarmSchemas";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { checkBodySize } from "@/lib/utils/body-limit";
 import { isValidUuid } from "@/lib/utils/uuid";
 
@@ -37,10 +37,13 @@ export async function GET(
     return NextResponse.json({ error: "Invalid swarm id" }, { status: 400 });
   }
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const swarm = await swarmsClient.get(id, ownerId);
     return NextResponse.json(swarm);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return engineErrorResponse(err);
   }
 }
@@ -76,10 +79,13 @@ export async function PATCH(
   }
 
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const swarm = await swarmsClient.update(id, parsed.data, ownerId);
     return NextResponse.json(swarm);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return engineErrorResponse(err);
   }
 }
@@ -93,10 +99,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid swarm id" }, { status: 400 });
   }
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     await swarmsClient.delete(id, ownerId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return engineErrorResponse(err);
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +11,13 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const tools = await swarmsClient.listTools(ownerId);
     return NextResponse.json(tools);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     // Endpoint pas encore branché côté engine → fallback liste vide
     if (err instanceof SwarmEngineError && err.status === 404) {
       return NextResponse.json([]);

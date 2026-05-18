@@ -16,7 +16,7 @@
  * les owners (équivalent service-role sans scoping). DEV_OWNER_ID DOIT être set
  * à un UUID v4 fixe en développement. Voir `.env.local`.
  *
- * 🛠️ V2 — à remplacer par une vraie session Supabase via `@supabase/ssr` :
+ * V2 — à remplacer par une vraie session Supabase via `@supabase/ssr` :
  *
  *   import { createServerClient } from "@supabase/ssr";
  *   import { cookies } from "next/headers";
@@ -32,9 +32,49 @@
  *
  * Voir aussi : `services/crewai-engine/src/routes/swarms.py` (filtre owner_id côté Python).
  */
+
+/**
+ * Erreur typée levée par `requireOwnerId()` quand aucun owner n'est résolu.
+ * Les routes critiques doivent catcher cette erreur et répondre 401.
+ */
+export class OwnerAuthError extends Error {
+  constructor(message = "Owner not resolved — DEV_OWNER_ID absent ou session invalide") {
+    super(message);
+    this.name = "OwnerAuthError";
+  }
+}
+
+/**
+ * Retourne l'owner_id ou retourne null.
+ * Utiliser uniquement pour les usages non-critiques (ex. clé de rate-limit).
+ * Pour les opérations data-scopées, préférer `requireOwnerId()`.
+ */
 export async function getOwnerId(): Promise<string | null> {
   // V1 single-user : owner_id stub depuis env.
   // DEV_OWNER_ID DOIT être set dans .env.local (UUID v4 fixe) — sinon IDOR.
   // V2 TODO : remplacer par session Supabase via @supabase/ssr.
   return process.env.DEV_OWNER_ID ?? null;
+}
+
+/**
+ * Retourne l'owner_id ou throw OwnerAuthError (jamais null/undefined/'').
+ *
+ * Pattern d'usage dans les routes critiques :
+ *
+ *   try {
+ *     const ownerId = await requireOwnerId();
+ *     // ... opération scopée par owner
+ *   } catch (err) {
+ *     if (err instanceof OwnerAuthError) {
+ *       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ *     }
+ *     throw err;
+ *   }
+ */
+export async function requireOwnerId(): Promise<string> {
+  const id = await getOwnerId();
+  if (!id) {
+    throw new OwnerAuthError();
+  }
+  return id;
 }

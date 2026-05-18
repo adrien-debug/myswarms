@@ -7,7 +7,7 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
@@ -64,6 +64,8 @@ def _check_rate_limit() -> None:
 class KickoffRequest(BaseModel):
     trigger: Literal["morning", "evening", "intraday", "on_demand", "webhook"] = "on_demand"
     inputs: dict[str, Any] = {}
+    # Snooze duration in hours — 1h min, 8760h max (1 year). None = no snooze.
+    snooze_hours: int | None = Field(default=None, ge=1, le=8760)
 
 
 class KickoffResponse(BaseModel):
@@ -254,9 +256,16 @@ def status(
 
 
 @router.get("/runs")
-def list_runs_endpoint(limit: int = Query(default=20, ge=1, le=100)) -> list[dict]:
-    """List recent runs from Supabase. Returns empty list if Supabase not configured."""
-    return run_store.list_runs(limit=limit)
+def list_runs_endpoint(
+    limit: int = Query(default=20, ge=1, le=100),
+    owner_id: str | None = Query(default=None),
+) -> list[dict]:
+    """List recent runs from Supabase. Returns empty list if Supabase not configured.
+
+    `owner_id` filters runs by owner when provided (multi-tenant scoping).
+    Without owner_id, returns all runs (V1 single-user behaviour).
+    """
+    return run_store.list_runs(limit=limit, owner_id=owner_id)
 
 
 @router.get("/runs/{kickoff_id}/steps")

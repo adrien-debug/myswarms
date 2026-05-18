@@ -1,9 +1,12 @@
+import logging
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_boot_logger = logging.getLogger(__name__)
 
 # Dual-mode .env loading :
 #   - Dev local : override=True — un .env (symlink de .env.local) DOIT gagner
@@ -67,7 +70,7 @@ class Settings(BaseSettings):
 
     # Composio — multi-channel tools (Gmail, Slack, Telegram, Calendar, Notion)
     COMPOSIO_API_KEY: str = ""
-    COMPOSIO_USER_ID: str = "adrien"  # entity_id for multi-tenant support
+    COMPOSIO_USER_ID: str = "adrien"  # entity_id for multi-tenant support — TODO multi-tenant
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = ""
@@ -132,3 +135,25 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── Boot-time misconfig warnings ─────────────────────────────────────────────
+# Ne cassent PAS le boot — logging uniquement. Permet d'identifier les
+# configurations partielles avant que les agents tombent en erreur à l'exécution.
+_CRITICAL_API_KEYS = {
+    "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
+    "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+    "COMPOSIO_API_KEY": settings.COMPOSIO_API_KEY,
+}
+for _key, _val in _CRITICAL_API_KEYS.items():
+    if not _val:
+        _boot_logger.warning(
+            "Boot misconfiguration: %s is empty — agents using this provider will fail at runtime.",
+            _key,
+        )
+
+# COMPOSIO_USER_ID garde sa valeur par défaut en production → risque multi-tenant.
+if settings.COMPOSIO_USER_ID == "adrien" and _IS_PROD_ENV:
+    _boot_logger.warning(
+        "Boot misconfiguration: COMPOSIO_USER_ID is still the default value 'adrien' in production — "
+        "set a proper user/entity_id for multi-tenant isolation."
+    )

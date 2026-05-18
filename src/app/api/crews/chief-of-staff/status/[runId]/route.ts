@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { crewaiClient, CrewaiEngineError } from "@/lib/crewai/client";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { isValidUuidV4 } from "@/lib/utils/uuid";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +16,13 @@ export async function GET(
   }
 
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
     const result = await crewaiClient.status("chief-of-staff", runId, { ownerId });
     return NextResponse.json(result);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (err instanceof CrewaiEngineError) {
       // Propage tout 4xx (auth, validation, conflit, rate limit, etc.) tel quel.
       if (err.status >= 400 && err.status < 500) {
