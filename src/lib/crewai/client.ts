@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   CrewKickoffRequest,
   CrewKickoffResponse,
@@ -5,7 +6,12 @@ import {
   CrewStatusResponse,
   CrewStatusResponseSchema,
   RunSummaryListSchema,
+  RunStepSchema,
+  DecisionSchema,
   type RunSummary,
+  type RunStep,
+  type Decision,
+  type DecisionAction,
 } from "./types";
 import { withOwnerId } from "./_internal";
 
@@ -164,5 +170,37 @@ export const crewaiClient = {
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
     const data = await handleResponse<unknown>(res, path);
     return RunSummaryListSchema.parse(data);
+  },
+
+  async listSteps(crew: string, kickoffId: string): Promise<RunStep[]> {
+    const path = `/v1/crews/${crew}/runs/${kickoffId}/steps`;
+    const res = await authedFetch(path);
+    const data = await handleResponse<unknown>(res, path);
+    return z.array(RunStepSchema).parse(data);
+  },
+
+  async recordDecision(
+    crew: string,
+    payload: { kickoff_id: string; action: DecisionAction; snooze_hours?: number },
+  ): Promise<Decision> {
+    const path = `/v1/crews/${crew}/decisions`;
+    const res = await authedFetch(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse<unknown>(res, path);
+    return DecisionSchema.parse(data);
+  },
+
+  async listDecisions(crew: string, kickoffId: string): Promise<Decision[]> {
+    try {
+      const path = `/v1/crews/${crew}/runs/${kickoffId}/decisions`;
+      const res = await authedFetch(path);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return z.array(DecisionSchema).parse(data);
+    } catch {
+      return [];
+    }
   },
 };

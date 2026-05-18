@@ -74,6 +74,33 @@ export type RunSummary = z.infer<typeof RunSummarySchema>;
 
 export const RunSummaryListSchema = z.array(RunSummarySchema);
 
+// ─── Run step (trace granulaire d'un step d'agent) ───────────────────────────
+
+export const RunStepSchema = z.object({
+  step_index: z.number(),
+  agent_name: z.string(),
+  task_name: z.string().nullable().optional(),
+  output_text: z.string().nullable().optional(),
+  started_at: z.string(),
+  finished_at: z.string().nullable().optional(),
+  latency_ms: z.number().nullable().optional(),
+});
+
+// ─── Decision (action HitL enregistrée sur un run) ───────────────────────────
+
+export const DecisionActionSchema = z.enum(["sent", "snoozed", "rejected"]);
+
+export const DecisionSchema = z.object({
+  id: z.string(),
+  action: DecisionActionSchema,
+  snooze_until: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+
+export type RunStep = z.infer<typeof RunStepSchema>;
+export type Decision = z.infer<typeof DecisionSchema>;
+export type DecisionAction = z.infer<typeof DecisionActionSchema>;
+
 // ─── TypeScript types (inferred from zod) ────────────────────────────────────
 
 export type CrewKickoffRequest = z.infer<typeof CrewKickoffRequestSchema>;

@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from ..config import settings
 from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
 from ..persistence import run_store
+from ..persistence.chief_step_store import list_chief_steps
+from ..persistence.chief_decision_store import record_decision
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +189,9 @@ async def kickoff(
     run_store.save_run(kickoff_id, request.trigger, "running", started_at)
 
     # Build initial state with allowlist override merge.
-    initial_state = ChiefOfStaffState(trigger=request.trigger)
+    # chief_run_id injected here so the flow can pass it to create_daily_chief_crew()
+    # which registers the task_callback for step persistence in chief_run_steps.
+    initial_state = ChiefOfStaffState(trigger=request.trigger, chief_run_id=kickoff_id)
     state_dict = initial_state.model_dump()
     extra_inputs = {
         k: v for k, v in (request.inputs or {}).items()
@@ -253,3 +257,65 @@ def status(
 def list_runs_endpoint(limit: int = Query(default=20, ge=1, le=100)) -> list[dict]:
     """List recent runs from Supabase. Returns empty list if Supabase not configured."""
     return run_store.list_runs(limit=limit)
+
+
+@router.get("/runs/{kickoff_id}/steps")
+def get_run_steps(kickoff_id: str) -> list[dict]:
+    """Return all completed task steps for a given run, ordered by step_index.
+
+    kickoff_id is a text string (UUID stringified) — no UUID validation applied
+    here since the store uses text comparison (not uuid cast).
+
+    Returns [] if run not found, Supabase not configured, or no steps recorded yet.
+    """
+    return list_chief_steps(chief_run_id=kickoff_id)
+
+
+@router.get("/runs/{kickoff_id}/decisions")
+def list_run_decisions_endpoint(kickoff_id: str) -> list[dict]:
+    """Return all recorded user decisions for a given run, ordered by created_at desc.
+
+    kickoff_id is a text string (UUID stringified) — same convention as /steps.
+
+    Returns [] if run not found, Supabase not configured, or no decisions recorded yet.
+    """
+    from ..persistence.chief_decision_store import list_decisions
+    return list_decisions(kickoff_id)
+
+
+class DecisionRequest(BaseModel):
+    kickoff_id: str
+    action: Literal["sent", "snoozed", "rejected"]
+    snooze_hours: int | None = None
+
+
+class DecisionResponse(BaseModel):
+    ok: bool
+    record: dict | None = None
+
+
+@router.post("/decisions", response_model=DecisionResponse)
+def post_decision(request: DecisionRequest) -> DecisionResponse:
+    """Record a user decision on a Chief run P0 item.
+
+    Body:
+        kickoff_id: the run's kickoff_id (text).
+        action: 'sent' | 'snoozed' | 'rejected'.
+        snooze_hours: optional int — only meaningful when action='snoozed'.
+            If provided, snooze_until = now + snooze_hours.
+
+    Returns 200 with {ok: true, record: {...}} on success.
+    Returns 422 if action is invalid (Pydantic Literal validation).
+    Returns 500 if Supabase write failed unexpectedly.
+    """
+    try:
+        created = record_decision(
+            chief_run_id=request.kickoff_id,
+            action=request.action,
+            snooze_hours=request.snooze_hours,
+        )
+    except ValueError as exc:
+        # Should not happen — Pydantic Literal already validates action.
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return DecisionResponse(ok=True, record=created)

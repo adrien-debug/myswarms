@@ -34,8 +34,8 @@ export default async function RunDetailPage({ params }: PageProps) {
     }
     return (
       <>
-        <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
-          ← Daily Chief of Staff
+        <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
+          ← Cockpit
         </Link>
         <h1 className="ct-title" style={{ marginTop: SPACING.sm }}>
           Run {runId.slice(0, 8)}…
@@ -76,8 +76,8 @@ export default async function RunDetailPage({ params }: PageProps) {
       {/* Auto-refresh every 5s while the crew flow is running. Stops when status is terminal. */}
       <AutoRefresh active={run.status === "running"} seconds={5} />
 
-      <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
-        ← Daily Chief of Staff
+      <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
+        ← Cockpit
       </Link>
 
       <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}>

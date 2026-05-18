@@ -22,11 +22,11 @@ export default async function ChiefOfStaffHistoryPage() {
   return (
     <>
       <Link
-        href="/crews/chief-of-staff"
+        href="/"
         className="ct-breadcrumb-link"
         style={{ fontSize: FONT.base }}
       >
-        ← Chief of Staff
+        ← Cockpit
       </Link>
 
       <div

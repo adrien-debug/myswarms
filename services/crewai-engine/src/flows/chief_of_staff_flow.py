@@ -31,6 +31,11 @@ class ChiefOfStaffState(BaseModel):
     # Mock mode: if True, skip real crew and return mock data
     mock_mode: bool = False
 
+    # chief_run_id: kickoff_id (text) propagated from routes/crews.py so that
+    # create_daily_chief_crew() can register the task_callback for step persistence.
+    # Injected into state via initial_state before flow.kickoff() is called.
+    chief_run_id: str = ""
+
     # Crew output
     crew_result: str = ""
     summary: str = ""
@@ -84,6 +89,9 @@ class ChiefOfStaffFlow(Flow[ChiefOfStaffState]):
                 trigger=self.state.trigger,
                 user_timezone=self.state.user_timezone,
                 user_language=self.state.user_language,
+                # chief_run_id injected from routes/crews.py via initial state — enables
+                # task_callback to persist each completed step to chief_run_steps.
+                chief_run_id=self.state.chief_run_id or None,
             )
             result = crew.kickoff(
                 inputs={

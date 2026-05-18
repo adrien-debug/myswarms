@@ -78,11 +78,10 @@ const TIPS_BY_AREA: Record<string, Tip[]> = {
 };
 
 function pickArea(pathname: string): keyof typeof TIPS_BY_AREA {
-  if (pathname === "/") return "home";
+  if (pathname === "/" || pathname.startsWith("/crews/chief-of-staff")) return "chief-of-staff";
   if (/^\/swarms\/[0-9a-f-]{36}\/runs\//i.test(pathname)) return "run";
   if (pathname === "/swarms/new" || pathname.endsWith("/edit")) return "builder";
   if (pathname.startsWith("/swarms")) return "swarms";
-  if (pathname.startsWith("/crews/chief-of-staff")) return "chief-of-staff";
   if (pathname.startsWith("/crews")) return "crews";
   return "home";
 }

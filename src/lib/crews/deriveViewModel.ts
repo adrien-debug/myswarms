@@ -1,4 +1,4 @@
-import type { RunSummary } from "@/lib/crewai/types";
+import type { RunSummary, RunStep, Decision } from "@/lib/crewai/types";
 import type {
   ChiefHomeViewModel,
   AgentRow,
@@ -9,6 +9,11 @@ import type {
   P0Item,
   RunStats,
 } from "./chiefTypes";
+
+// Max chars for step output shown in the diff feed (keeps rows scannable)
+const DIFF_TEXT_MAX_CHARS = 100;
+// Max chars for draft text shown in DecisionCard (avoids card overflow)
+const DRAFT_TEXT_MAX_CHARS = 600;
 
 const AGENT_DEFS: Pick<AgentRow, "icon" | "name">[] = [
   { icon: "🎯", name: "Chief of Staff" },
@@ -227,15 +232,138 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
   return markers;
 }
 
-export function deriveViewModel(run: RunSummary | null, now: Date): ChiefHomeViewModel {
+// ─── Real steps helpers ───────────────────────────────────────────────────────
+
+function deriveAgentRowsFromSteps(steps: RunStep[]): AgentRow[] {
+  return AGENT_DEFS.map((def) => {
+    // Daily Planner est toujours V2 pending
+    if (def.name === "Daily Planner") {
+      return { ...def, status: "pending" as const, statusLabel: "V2 pending" };
+    }
+    const step = steps.find((s) =>
+      s.agent_name.toLowerCase().includes(def.name.toLowerCase()),
+    );
+    if (!step) {
+      return { ...def, status: "idle" as const, statusLabel: "—" };
+    }
+    if (step.finished_at) {
+      const time = safeDate(step.finished_at);
+      return {
+        ...def,
+        status: "idle" as const,
+        statusLabel: `Terminé · ${time ? formatHHMM(time) : "—"}`,
+      };
+    }
+    return { ...def, status: "active" as const, statusLabel: "En cours…" };
+  });
+}
+
+function deriveDiffItemsFromSteps(steps: RunStep[]): DiffItem[] {
+  return steps.map((step) => {
+    const time = safeDate(step.started_at);
+    const rawText = step.output_text?.trim();
+    const text = rawText
+      ? rawText.length > DIFF_TEXT_MAX_CHARS
+        ? rawText.slice(0, DIFF_TEXT_MAX_CHARS) + "…"
+        : rawText
+      : "a terminé";
+    return {
+      time: time ? formatHHMM(time) : "—",
+      agentName: step.agent_name,
+      text,
+    };
+  });
+}
+
+function deriveTimelineFromSteps(steps: RunStep[], now: Date): TimelineMarker[] {
+  const markers: TimelineMarker[] = steps.map((step) => {
+    const d = safeDate(step.started_at);
+    return {
+      leftPercent: 0, // recalculé plus bas
+      time: d ? formatHHMM(d) : "—",
+      label: step.agent_name,
+      variant: step.finished_at ? ("done" as const) : ("now" as const),
+    };
+  });
+
+  if (steps.length > 0) {
+    const firstMs = safeDate(steps[0].started_at)?.getTime() ?? now.getTime();
+    // Cible 18:30 du jour du premier step
+    const today1830 = new Date(steps[0].started_at);
+    today1830.setHours(18, 30, 0, 0);
+    const totalSpan = today1830.getTime() - firstMs;
+    const clamp = (v: number) => Math.max(0, Math.min(100, v));
+
+    steps.forEach((step, i) => {
+      const ms = safeDate(step.started_at)?.getTime() ?? firstMs;
+      markers[i].leftPercent = clamp(((ms - firstMs) / totalSpan) * 100);
+    });
+  }
+
+  // Ajouter "Brief soir" 18:30 futur
+  markers.push({ leftPercent: 96, time: "18:30", label: "Brief soir", variant: "future" });
+  return markers;
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+export function deriveViewModel(
+  run: RunSummary | null,
+  steps: RunStep[],
+  decisions: Decision[],
+  now: Date,
+): ChiefHomeViewModel {
   const parsed = tryParse(run?.result);
+
+  // Calcul du p0Item de base
+  let p0Item: P0Item | null = extractP0(parsed);
+
+  // Filtrer le P0 si une décision "rejected" ou "snoozed" (encore active) existe
+  if (p0Item !== null) {
+    const nowMs = now.getTime();
+    const handled = decisions.some((d) => {
+      if (d.action === "rejected") return true;
+      if (d.action === "snoozed") {
+        if (!d.snooze_until) return true;
+        const snoozeEnd = safeDate(d.snooze_until);
+        return snoozeEnd !== null && snoozeEnd.getTime() > nowMs;
+      }
+      return false;
+    });
+    if (handled) p0Item = null;
+  }
+
+  // P0.2b — draftText : real draft from steps en priorité, sinon fallback mock
+  let draftText: string | null = null;
+  if (steps.length > 0) {
+    const draftStep = steps.find((s) => s.agent_name.toLowerCase().includes("draft"));
+    if (draftStep && draftStep.output_text?.trim()) {
+      const raw = draftStep.output_text.trim();
+      draftText = raw.length > DRAFT_TEXT_MAX_CHARS ? raw.slice(0, DRAFT_TEXT_MAX_CHARS) + "…" : raw;
+    }
+  }
+  if (draftText === null && isMockResult(parsed) && (parsed.drafts_prepared ?? 0) > 0) {
+    draftText = `[Brouillon généré — ${parsed.drafts_prepared} réponse(s) préparée(s). Cliquer Modifier pour accéder au brouillon complet.]`;
+  }
+
+  if (steps.length > 0) {
+    // ── Branche "real steps" ──────────────────────────────────────────────────
+    return {
+      run,
+      p0Item,
+      draftText,
+      agentRows: deriveAgentRowsFromSteps(steps),
+      diffItems: deriveDiffItemsFromSteps(steps),
+      timelineMarkers: deriveTimelineFromSteps(steps, now),
+      runStats: deriveRunStats(parsed),
+    };
+  }
+
+  // ── Fallback synthétique (aucun step réel disponible) ──────────────────────
   return {
     run,
-    p0Item: extractP0(parsed),
-    draftText:
-      isMockResult(parsed) && (parsed.drafts_prepared ?? 0) > 0
-        ? `[Brouillon généré — ${parsed.drafts_prepared} réponse(s) préparée(s). Cliquer Modifier pour accéder au brouillon complet.]`
-        : null,
+    p0Item,
+    draftText,
     agentRows: deriveAgentRows(run, now),
     diffItems: deriveDiffItems(run, parsed),
     timelineMarkers: deriveTimeline(run, now),

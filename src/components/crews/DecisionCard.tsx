@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SPACING, FONT, RADIUS } from "@/lib/ui/tokens";
 import type { P0Item } from "@/lib/crews/chiefTypes";
+
+// Mirror of Python DEFAULT_SNOOZE_HOURS — keep in sync with chief_decision_store.py
+const DEFAULT_SNOOZE_HOURS = 2;
 
 interface Props {
   p0Item: P0Item | null;
@@ -13,26 +16,57 @@ interface Props {
 
 export function DecisionCard({ p0Item, draftText, runId }: Props) {
   const router = useRouter();
+  const [loading, setLoading] = useState<"snoozed" | "rejected" | null>(null);
+
+  const handleDecision = async (action: "snoozed" | "rejected") => {
+    if (!runId || loading) return;
+    setLoading(action);
+    try {
+      const payload: Record<string, unknown> = { kickoff_id: runId, action };
+      if (action === "snoozed") payload.snooze_hours = DEFAULT_SNOOZE_HOURS;
+      const res = await fetch("/api/crews/chief-of-staff/decisions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      router.refresh();
+    } catch (err) {
+      console.error("Decision failed:", err);
+      alert(`Échec de l'action ${action}`);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   useEffect(() => {
     if (!p0Item || !runId) return;
 
     function handleKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      )) {
+        return;
+      }
       const key = e.key.toLowerCase();
       if (key === "e") {
-        // Phase 2 — action non disponible
+        // Phase 3 — approbation Composio Gmail requise
       } else if (key === "m") {
         router.push(`/crews/chief-of-staff/runs/${runId}`);
       } else if (key === "s") {
-        // Phase 2 — snooze non disponible
+        void handleDecision("snoozed");
       } else if (key === "r") {
-        // Phase 2 — rejet non disponible
+        void handleDecision("rejected");
       }
     }
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [p0Item, runId, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p0Item, runId, router, loading]);
 
   if (!p0Item) {
     return (
@@ -195,7 +229,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         {/* E — Envoyer */}
         <button
           disabled
-          title="Phase 2 — non disponible"
+          title="Phase 3 — approbation Composio Gmail requise"
           style={{
             position: "relative",
             padding: `${SPACING.sm}px ${SPACING.lg}px`,
@@ -265,7 +299,8 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
         {/* S — Snooze */}
         <button
-          disabled
+          onClick={() => void handleDecision("snoozed")}
+          disabled={!runId || loading !== null}
           style={{
             position: "relative",
             padding: `${SPACING.sm}px ${SPACING.lg}px`,
@@ -276,12 +311,12 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             color: "var(--ct-text-body)",
             fontSize: FONT.base,
             fontWeight: 600,
-            cursor: "not-allowed",
-            opacity: 0.4,
+            cursor: !runId || loading !== null ? "not-allowed" : "pointer",
+            opacity: !runId ? 0.4 : 1,
             fontFamily: "inherit",
           }}
         >
-          S — Snooze 2h
+          {loading === "snoozed" ? "…" : "S — Snooze 2h"}
           <kbd
             style={{
               position: "absolute",
@@ -300,7 +335,8 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
         {/* R — Rejeter */}
         <button
-          disabled
+          onClick={() => void handleDecision("rejected")}
+          disabled={!runId || loading !== null}
           style={{
             position: "relative",
             padding: `${SPACING.sm}px ${SPACING.lg}px`,
@@ -311,12 +347,12 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             color: "var(--cos-p0)",
             fontSize: FONT.base,
             fontWeight: 600,
-            cursor: "not-allowed",
-            opacity: 0.4,
+            cursor: !runId || loading !== null ? "not-allowed" : "pointer",
+            opacity: !runId ? 0.4 : 1,
             fontFamily: "inherit",
           }}
         >
-          R — Rejeter
+          {loading === "rejected" ? "…" : "R — Rejeter"}
           <kbd
             style={{
               position: "absolute",

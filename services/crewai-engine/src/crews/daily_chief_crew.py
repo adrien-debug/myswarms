@@ -8,9 +8,16 @@ Agents are created fresh on each call to create_daily_chief_crew() via create_ag
 No module-level Agent singletons — safe for concurrent kickoffs.
 """
 
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
 from crewai import Crew, Process, Task
 
 from ..agents.definitions import create_agents
+from ..persistence.chief_step_store import save_chief_step
+
+logger = logging.getLogger(__name__)
 
 # Architecture note: agents and tasks are defined inline (Python) rather than via @CrewBase + YAML
 # for explicit type safety and dynamic parameter injection (trigger, timezone, language).
@@ -251,10 +258,70 @@ Return as:
     ]
 
 
+def _make_task_callback(chief_run_id: str) -> Any:
+    """Build a task_callback closure bound to a specific chief_run_id.
+
+    CrewAI calls task_callback(task_output) after each Task completes.
+    task_output is a crewai.TaskOutput instance with attributes:
+      - description (str): task description
+      - agent (str): agent role
+      - raw (str): raw output text
+      - summary (str | None): optional short summary
+
+    chief_run_id: the kickoff_id string (text) from chief_run_log —
+      passed from _execute_flow_background via create_daily_chief_crew().
+    """
+    step_counter = [0]  # mutable cell — closure trick for index tracking
+    # _last_ts tracks when the previous step finished (= start of current step).
+    # Initialised to crew boot time so step 0 latency reflects its real duration.
+    _last_ts = [datetime.now(timezone.utc)]
+
+    def task_callback(task_output: Any) -> None:
+        idx = step_counter[0]
+        step_counter[0] += 1
+
+        # Extract fields from crewai.TaskOutput (duck-typed for forward compat)
+        # P1.3 — task_output.agent may be an Agent object, not a string.
+        _agent = getattr(task_output, "agent", None)
+        if _agent is None:
+            agent_name = "unknown"
+        elif isinstance(_agent, str):
+            agent_name = _agent
+        else:
+            # Agent object → extract .role (string), fallback to repr
+            agent_name = getattr(_agent, "role", None) or str(_agent)
+
+        description = getattr(task_output, "description", None) or ""
+        task_name = description[:80] if description else None
+        raw_output = getattr(task_output, "raw", None) or getattr(task_output, "summary", None) or ""
+
+        # P0.2 — real timing: started_at = end of previous step, finished_at = now.
+        # Avoids latency_ms=0 / all steps appearing instantaneously terminated.
+        started = _last_ts[0]
+        finished = datetime.now(timezone.utc)
+        _last_ts[0] = finished  # advance for next step
+
+        try:
+            save_chief_step(
+                chief_run_id=chief_run_id,
+                step_index=idx,
+                agent_name=agent_name,
+                task_name=task_name,
+                output_text=str(raw_output)[:2000],
+                started_at=started,
+                finished_at=finished,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[task_callback] save_chief_step failed for step %d: %s", idx, exc)
+
+    return task_callback
+
+
 def create_daily_chief_crew(
     trigger: str = "on_demand",
     user_timezone: str = "Asia/Dubai",
     user_language: str = "fr",
+    chief_run_id: str | None = None,
 ) -> Crew:
     """Create the Daily Chief of Staff crew with hierarchical process.
 
@@ -263,6 +330,14 @@ def create_daily_chief_crew(
 
     Chief of Staff is the manager agent that delegates to 8 specialized agents.
     Security Level N3: organizational actions only (no auto-send).
+
+    Args:
+        trigger: one of 'morning', 'evening', 'intraday', 'on_demand', 'webhook'.
+        user_timezone: IANA timezone string (default Asia/Dubai).
+        user_language: ISO 639-1 language code (default 'fr').
+        chief_run_id: kickoff_id (text) from chief_run_log — if provided, a
+            task_callback is registered to persist each completed step to
+            chief_run_steps via save_chief_step(). Omit in tests/mock mode.
     """
     agents = create_agents()
 
@@ -273,8 +348,8 @@ def create_daily_chief_crew(
         user_language=user_language,
     )
 
-    return Crew(
-        agents=[
+    crew_kwargs: dict[str, Any] = {
+        "agents": [
             agents["inbox_collector"],
             agents["classifier"],
             agents["priority_manager"],
@@ -284,7 +359,7 @@ def create_daily_chief_crew(
             agents["automation_executor"],
             agents["memory_agent"],
         ],
-        tasks=tasks,
+        "tasks": tasks,
         # Process.sequential (V1): tasks run in order, each agent processes its task
         # and passes context to the next. Lighter on LLM calls than hierarchical
         # (no manager delegation overhead = fewer/shorter prompts = lower risk of
@@ -292,7 +367,12 @@ def create_daily_chief_crew(
         # The Chief of Staff agent is no longer the manager — its goal is now encoded
         # in the task chain itself (collect → classify → prioritize → extract → plan →
         # draft → automate → memorize).
-        process=Process.sequential,
-        planning=False,
-        verbose=True,
-    )
+        "process": Process.sequential,
+        "planning": False,
+        "verbose": True,
+    }
+
+    if chief_run_id:
+        crew_kwargs["task_callback"] = _make_task_callback(chief_run_id)
+
+    return Crew(**crew_kwargs)
