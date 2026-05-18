@@ -22,6 +22,8 @@ Contrat (aligné avec la migration 0006_swarms_dynamic.sql) :
 from __future__ import annotations
 
 import logging
+import queue
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -34,6 +36,126 @@ from ..llms import get_llm
 from ..persistence import swarm_store
 
 logger = logging.getLogger(__name__)
+
+# ── Async step writer ─────────────────────────────────────────────────────────
+# Sentinel object used to signal the worker thread to exit cleanly.
+_WRITER_STOP_SENTINEL = object()
+
+# Module-level registry {run_id: _StepWriter}.
+# Populated by create_dynamic_crew when run_id is provided.
+# Used by flush_run_steps() called from the flow after kickoff.
+_run_writers: dict[str, "_StepWriter"] = {}
+_run_writers_lock = threading.Lock()
+
+
+class _StepWriter:
+    """Thread-safe, non-blocking writer for swarm_run_steps.
+
+    A single daemon worker thread drains a Queue and calls
+    swarm_store.append_run_step(**item). The queue is FIFO, so
+    step_number order is preserved (one worker, no interleaving).
+
+    Usage:
+        writer = _StepWriter(run_id="...")
+        writer.enqueue(run_id=..., agent_id=..., step_number=..., ...)
+        writer.close()   # drains + joins worker before returning
+    """
+
+    # Maximum time (seconds) to wait for queue drain during close().
+    # Named constant — no magic number.
+    _CLOSE_TIMEOUT_SECONDS: float = 30.0
+
+    def __init__(self, run_id: str) -> None:
+        self._run_id = run_id
+        self._q: queue.Queue[Any] = queue.Queue()
+        self._thread = threading.Thread(
+            target=self._worker,
+            name=f"step-writer-{run_id[:8]}",
+            daemon=True,
+        )
+        self._thread.start()
+
+    def enqueue(self, **kwargs: Any) -> None:
+        """Non-blocking: puts item in queue. Never raises."""
+        try:
+            self._q.put_nowait(kwargs)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "_StepWriter.enqueue failed for run=%s: %s",
+                self._run_id, exc,
+            )
+
+    def close(self) -> None:
+        """Drain the queue and wait for the worker to finish.
+
+        Puts a sentinel to signal the worker, then joins with a bounded
+        timeout so we never block the flow indefinitely on a stuck DB call.
+        """
+        try:
+            self._q.put(_WRITER_STOP_SENTINEL)
+            self._thread.join(timeout=self._CLOSE_TIMEOUT_SECONDS)
+            if self._thread.is_alive():
+                logger.warning(
+                    "_StepWriter worker still alive after %.1fs drain — "
+                    "run=%s (some steps may be lost)",
+                    self._CLOSE_TIMEOUT_SECONDS, self._run_id,
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "_StepWriter.close failed for run=%s: %s",
+                self._run_id, exc,
+            )
+
+    def _worker(self) -> None:
+        """Daemon worker: consumes queue items and persists each step."""
+        while True:
+            try:
+                item = self._q.get()
+                if item is _WRITER_STOP_SENTINEL:
+                    self._q.task_done()
+                    break
+                try:
+                    swarm_store.append_run_step(**item)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "_StepWriter worker append_run_step failed for run=%s: %s",
+                        self._run_id, exc,
+                    )
+                finally:
+                    self._q.task_done()
+            except Exception as exc:  # noqa: BLE001
+                # Safety net: worker must never crash.
+                logger.warning(
+                    "_StepWriter worker unexpected error for run=%s: %s",
+                    self._run_id, exc,
+                )
+
+
+def flush_run_steps(run_id: str | None) -> None:
+    """Drain the _StepWriter for run_id, if one exists.
+
+    Idempotent and fail-soft:
+      - run_id=None → no-op.
+      - Unknown run_id → no-op (writer may have already been closed).
+      - Any exception → logged as warning, never raised.
+
+    Called by dynamic_swarm_flow.run_crew BEFORE update_swarm_run so that
+    ALL queued steps are persisted before the run transitions to
+    completed/failed.
+    """
+    if not run_id:
+        return
+    with _run_writers_lock:
+        writer = _run_writers.pop(run_id, None)
+    if writer is None:
+        return
+    try:
+        writer.close()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "flush_run_steps close failed for run=%s: %s",
+            run_id, exc,
+        )
 
 # G3 fix : limite de preview pour les output_text persistés en DB. CrewAI
 # peut produire des outputs longs (>50KB) qui gonflent inutilement
@@ -374,6 +496,7 @@ def _build_step_callback(
     run_id: str,
     agents_map: dict[str, Agent],
     tasks_meta: list[dict[str, Any]],
+    writer: "_StepWriter",
 ):
     """H3 fix : callback CrewAI qui pousse chaque step ReAct dans
     `swarm_run_steps`.
@@ -393,8 +516,9 @@ def _build_step_callback(
     Le `task_meta_by_idx[current_task_idx]` permet d'attribuer correctement
     le `task_id` / `agent_id` à chaque step ReAct.
 
-    Pas de tokens / cost — sera ajouté en V2 si LiteLLM remonte les usage
-    metrics via les hooks `tool_callback` / `task_completed_callback`.
+    P0-2 — writes non-bloquants : la closure step_cb ne fait QUE enqueue()
+    dans le _StepWriter (zéro appel HTTP dans le thread du crew). Le worker
+    daemon du writer persiste chaque step de façon asynchrone.
 
     Returns:
         (step_cb, step_state) : la closure callback + son state isolé. Le
@@ -459,7 +583,13 @@ def _build_step_callback(
                 status = "failed"
                 output_text = str(getattr(payload, "error"))[:_STEP_OUTPUT_PREVIEW_CHARS]
 
-            swarm_store.append_run_step(
+            # P0-2 : enqueue uniquement — zéro appel HTTP synchrone dans ce thread.
+            # H5 fix : `finished_at` n'est PAS posé ici — append_run_step ne
+            # gère que created_at, et nous n'avons pas l'id du step en retour
+            # (best-effort, pas atomique). TODO V2 : retourner le step_id
+            # depuis append_run_step et faire un update_run_step ultérieur
+            # quand le step suivant arrive (proxy de "fin du step précédent").
+            writer.enqueue(
                 run_id=run_id,
                 agent_id=agent_id,
                 task_id=task_id,
@@ -468,11 +598,6 @@ def _build_step_callback(
                 latency_ms=latency_ms,
                 status=status,
             )
-            # H5 fix : `finished_at` n'est PAS posé ici — append_run_step ne
-            # gère que created_at, et nous n'avons pas l'id du step en retour
-            # (best-effort, pas atomique). TODO V2 : retourner le step_id
-            # depuis append_run_step et faire un update_run_step ultérieur
-            # quand le step suivant arrive (proxy de "fin du step précédent").
         except Exception as exc:  # noqa: BLE001
             # Un callback qui crash ne doit JAMAIS faire tomber le Crew.
             logger.warning(
@@ -487,6 +612,7 @@ def _build_task_callback(
     run_id: str,
     step_state: dict[str, Any],
     tasks_meta: list[dict[str, Any]],
+    writer: "_StepWriter",
 ):
     """H3 fix : callback de fin de task — avance le `current_task_idx`.
 
@@ -497,6 +623,9 @@ def _build_task_callback(
 
     Optionnellement, on persiste aussi un "step de fin de task" pour tracer
     le TaskOutput côté `swarm_run_steps` — utile pour l'UI timeline.
+
+    P0-2 : la closure task_cb ne fait QUE enqueue() — zéro appel HTTP
+    synchrone dans le thread du crew.
     """
     def task_cb(task_output: Any) -> None:
         try:
@@ -511,7 +640,8 @@ def _build_task_callback(
                         output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
                         break
                 step_state["step_number"] += 1
-                swarm_store.append_run_step(
+                # P0-2 : enqueue uniquement — zéro appel HTTP synchrone.
+                writer.enqueue(
                     run_id=run_id,
                     agent_id=meta.get("agent_id"),
                     task_id=meta.get("task_id"),
@@ -572,6 +702,13 @@ def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
     # Avant : un seul `callback` était installé pour les deux hooks → mélange
     # step+task et faux step_number. Maintenant : deux closures distinctes
     # qui partagent `step_state` via fermeture explicite.
+    #
+    # P0-2 — writes non-bloquants : un _StepWriter (queue + worker daemon)
+    # est instancié ici et enregistré dans _run_writers[run_id].
+    # Les closures step_cb / task_cb ne font que enqueue() — zéro HTTP dans
+    # le thread du crew. flush_run_steps(run_id) est appelé par le flow
+    # AVANT que le run passe completed/failed pour garantir que tous les
+    # steps queués sont persistés.
     if run_id:
         # WHY : `tasks_meta` DOIT être strictement iso (cardinalité + ordre)
         # à `tasks` réellement passées au Crew. Le task_callback incrémente
@@ -583,8 +720,11 @@ def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
         # instantiate_tasks, dans le MÊME ordre que `tasks` (même boucle,
         # même prédicat de skip) — on l'extrait tel quel, sans recalcul.
         tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
-        step_cb, step_state = _build_step_callback(run_id, agents_map, tasks_meta)
-        task_cb = _build_task_callback(run_id, step_state, tasks_meta)
+        writer = _StepWriter(run_id)
+        with _run_writers_lock:
+            _run_writers[run_id] = writer
+        step_cb, step_state = _build_step_callback(run_id, agents_map, tasks_meta, writer)
+        task_cb = _build_task_callback(run_id, step_state, tasks_meta, writer)
         crew_kwargs["step_callback"] = step_cb
         crew_kwargs["task_callback"] = task_cb
 
