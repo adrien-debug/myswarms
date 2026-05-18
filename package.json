@@ -16,8 +16,8 @@
     "electron:publish": "tsc -p electron && npm run electron:assets && electron-builder --publish always"
   },
   "dependencies": {
-    "@hearst/cockpit-shell": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation/hub — Hearst-Hub/packages/cockpit-shell/hearst-cockpit-shell-0.1.0.tgz",
-    "@hearst/hub-sdk": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation/hub — Hearst-Hub/packages/hub-sdk/hearst-hub-sdk-0.1.0.tgz",
+    "@hearst/cockpit-shell": "file:./hearst-cockpit-shell-0.1.0.tgz",
+    "@hearst/hub-sdk": "file:./hearst-hub-sdk-0.1.0.tgz",
     "@hookform/resolvers": "^5.2.2",
     "@sentry/nextjs": "^10.53.1",
     "@supabase/ssr": "^0.10.3",
