@@ -119,26 +119,23 @@ def get_run(kickoff_id: str) -> dict[str, Any] | None:
         return None
 
 
-def list_runs(limit: int = 20, owner_id: str | None = None) -> list[dict[str, Any]]:
+def list_runs(limit: int = 20) -> list[dict[str, Any]]:
     """Fetch the most recent runs (ordered by started_at desc). Returns [] on failure.
 
-    `owner_id` filters by owner when provided (multi-tenant scoping).
-    Without owner_id, returns all runs (V1 single-user behaviour — rétrocompatible).
+    # V2 single-user : chief_run_log n'a pas de colonne owner_id ; scoping owner = dette V2 (cf. src/lib/auth/owner.ts)
     """
     client = _get_client()
     if client is None:
         return []
     try:
-        query = (
+        result = (
             client.table("chief_run_log")
             .select("kickoff_id,trigger,status,started_at,finished_at,result")
             .order("started_at", desc=True)
             .limit(limit)
+            .execute()
         )
-        if owner_id is not None:
-            query = query.eq("owner_id", owner_id)
-        result = query.execute()
         return result.data if result else []
     except Exception as exc:  # noqa: BLE001
-        logger.error("list_runs failed: %s", exc)
+        logger.warning("list_runs failed: %s", exc)
         return []

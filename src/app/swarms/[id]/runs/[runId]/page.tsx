@@ -17,7 +17,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
-import { FONT } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -40,15 +40,14 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         <div className="ct-eyebrow">
           <Link
             href={`/swarms/${id}`}
-            style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
+            className="ct-breadcrumb-link"
           >
             ← Swarm
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
         <div
-          className="ct-card"
-          style={{ borderColor: "var(--ct-border-accent)" }}
+          className="ct-card ct-card--accent"
         >
           <div className="ct-card-title">Chargement échoué</div>
           <p className="ct-card-body">
@@ -81,23 +80,23 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 16,
+          gap: SPACING.lg,
           flexWrap: "wrap",
         }}
       >
         <div>
           <h1
             className="ct-title"
-            style={{ fontFamily: "monospace", fontSize: 22 }}
+            style={{ fontFamily: "monospace", fontSize: FONT.xxl }}
           >
             Run {runId.slice(0, 8)}…
           </h1>
           <div
             style={{
               display: "flex",
-              gap: 12,
+              gap: SPACING.md,
               alignItems: "center",
-              marginBottom: 24,
+              marginBottom: SPACING.xl,
             }}
           >
             <StatusBadge status={run.status} size="md" />
@@ -130,7 +129,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
+            gap: SPACING.lg,
           }}
         >
           <Field
@@ -187,8 +186,8 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             style={{
               background: "var(--ct-surface-2)",
               border: "1px solid var(--ct-border)",
-              borderRadius: 8,
-              padding: 12,
+              borderRadius: RADIUS.md,
+              padding: SPACING.md,
               fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
               fontFamily: "monospace",
@@ -205,12 +204,12 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
 
       <div
         style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: "0.14em",
+          fontSize: FONT.xs,
+          fontWeight: FONT_WEIGHT.bold,
+          letterSpacing: LETTER_SPACING.wide,
           textTransform: "uppercase",
           color: "var(--ct-text-muted)",
-          margin: "24px 0 12px",
+          margin: `${SPACING.xl}px 0 ${SPACING.md}px`,
         }}
       >
         Timeline ({run.steps.length} steps)
@@ -233,19 +232,19 @@ function Field({
     <div>
       <div
         style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: "0.14em",
+          fontSize: FONT.xs,
+          fontWeight: FONT_WEIGHT.bold,
+          letterSpacing: LETTER_SPACING.wide,
           textTransform: "uppercase",
           color: "var(--ct-text-muted)",
-          marginBottom: 4,
+          marginBottom: SPACING.xs,
         }}
       >
         {label}
       </div>
       <div
         style={{
-          fontSize: 13,
+          fontSize: FONT.base,
           color: "var(--ct-text-primary)",
           fontFamily: mono ? "monospace" : "inherit",
           wordBreak: "break-all",

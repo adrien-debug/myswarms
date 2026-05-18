@@ -19,7 +19,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="ct-primary-btn"
+      className="ct-seg-btn primary"
     >
       {pending ? "Running…" : "Run now"}
     </button>

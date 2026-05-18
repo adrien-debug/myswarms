@@ -258,14 +258,12 @@ def status(
 @router.get("/runs")
 def list_runs_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
-    owner_id: str | None = Query(default=None),
 ) -> list[dict]:
     """List recent runs from Supabase. Returns empty list if Supabase not configured.
 
-    `owner_id` filters runs by owner when provided (multi-tenant scoping).
-    Without owner_id, returns all runs (V1 single-user behaviour).
+    # V2 single-user : chief_run_log n'a pas de colonne owner_id ; scoping owner = dette V2 (cf. src/lib/auth/owner.ts)
     """
-    return run_store.list_runs(limit=limit, owner_id=owner_id)
+    return run_store.list_runs(limit=limit)
 
 
 @router.get("/runs/{kickoff_id}/steps")
