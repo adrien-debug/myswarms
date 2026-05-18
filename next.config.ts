@@ -13,16 +13,7 @@ export default withSentryConfig(nextConfig, {
   // Silent Sentry CLI output unless there is an error.
   silent: !process.env.CI,
 
-  // Source map upload is DISABLED intentionally.
-  // WHY: The SENTRY_AUTH_TOKEN currently returns 403 (token needs to be
-  // regenerated in the Sentry dashboard). Enabling upload would cause
-  // `npm run build` to fail. Re-enable by removing the block below once
-  // a valid token is available.
-  sourcemaps: {
-    disable: true,
-  },
-
-  // Disable the automatic Sentry release creation (also requires auth token).
+  // Disable the automatic Sentry release creation.
   release: {
     create: false,
     finalize: false,

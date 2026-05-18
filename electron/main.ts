@@ -19,13 +19,13 @@ async function initStore() {
 }
 
 const ENV_URLS = {
-  local: "http://localhost:3000",
+  local: "http://localhost:3001",
   prod: "https://myswarms.vercel.app",
 };
 
 // --- Boot tuning constants (no magic numbers scattered in logic) ---
 const ENGINE_PORT = 8000;
-const FRONT_PORT = 3000;
+const FRONT_PORT = 3001;
 const ENGINE_HEALTH_URL = `http://localhost:${ENGINE_PORT}/health`;
 const FRONT_URL = `http://localhost:${FRONT_PORT}`;
 const BOOT_TIMEOUT_MS = 90_000;
@@ -266,6 +266,14 @@ function spawnEngine(repoRoot: string) {
 
 function spawnFront(repoRoot: string) {
   const npm = resolveNpmBin();
+  // Injecter le répertoire node dans PATH pour que le shebang #!/usr/bin/env node
+  // soit résolu même quand Electron démarre sans le PATH nvm de l'utilisateur.
+  const nodeBinDir = path.dirname(npm);
+  const patchedEnv = {
+    ...process.env,
+    PORT: String(FRONT_PORT),
+    PATH: `${nodeBinDir}:${process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin"}`,
+  };
   const hasBuild = existsSync(path.join(repoRoot, ".next"));
   // Si .next absent : build puis start. On chaîne via sh -c pour rester natif.
   sendBootStatus("Démarrage du front…");
@@ -275,7 +283,7 @@ function spawnFront(repoRoot: string) {
       cwd: repoRoot,
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env },
+      env: patchedEnv,
     });
   } else {
     sendBootStatus("Build du front (première fois)…");
@@ -287,7 +295,7 @@ function spawnFront(repoRoot: string) {
         cwd: repoRoot,
         detached: true,
         stdio: ["ignore", "pipe", "pipe"],
-        env: { ...process.env },
+        env: patchedEnv,
       }
     );
   }

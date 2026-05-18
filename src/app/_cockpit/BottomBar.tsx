@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BottomBarSwarmActions } from "@/components/swarms/BottomBarSwarmActions";
+import { LaunchButton } from "@/components/cockpit/LaunchButton";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
@@ -51,6 +52,10 @@ export function BottomBar() {
           >
             Crews
           </Link>
+        </div>
+
+        <div className="ct-seg-track">
+          <LaunchButton />
         </div>
 
         <div className="ct-seg-track">
