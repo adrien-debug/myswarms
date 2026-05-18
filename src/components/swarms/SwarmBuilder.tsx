@@ -460,7 +460,7 @@ const inputStyle: React.CSSProperties = {
   background: "var(--ct-surface-2)",
   border: "1px solid var(--ct-border)",
   borderRadius: RADIUS.md,
-  padding: `${SPACING.sm + 2}px ${SPACING.md}px`,
+  padding: `${SPACING.s}px ${SPACING.md}px`,
   color: "var(--ct-text-primary)",
   fontSize: FONT.base,
   fontFamily: "inherit",

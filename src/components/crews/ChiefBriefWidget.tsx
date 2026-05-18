@@ -120,7 +120,7 @@ function ResultBody({ result }: { result: string }) {
     if (hasPreferenceHints(parsed)) {
       const hints = parsed.preference_hints.slice(0, PREFERENCE_HINTS_PREVIEW_COUNT);
       return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xs }}>
           {hints.map((h, i) => (
             <p
               key={i}
@@ -205,7 +205,7 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.s }}>
           <span className="ct-card-title" style={{ margin: 0 }}>
             Dernier brief
           </span>
@@ -250,7 +250,7 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
             paddingTop: SPACING.md,
             borderTop: "1px solid var(--ct-border-soft)",
             display: "flex",
-            gap: 10,
+            gap: SPACING.s,
             alignItems: "center",
           }}
         >

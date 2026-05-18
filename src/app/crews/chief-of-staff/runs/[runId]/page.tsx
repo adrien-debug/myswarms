@@ -125,7 +125,7 @@ export default async function RunDetailPage({ params }: PageProps) {
             <pre
               style={{
                 overflow: "auto",
-                padding: `${SPACING.lg}px 20px`,
+                padding: `${SPACING.lg}px ${SPACING.lx}px`,
                 fontSize: FONT.xs,
                 fontFamily: "monospace",
                 color: "var(--ct-text-body)",
@@ -148,7 +148,7 @@ export default async function RunDetailPage({ params }: PageProps) {
             <pre
               style={{
                 overflow: "auto",
-                padding: `${SPACING.lg}px 20px`,
+                padding: `${SPACING.lg}px ${SPACING.lx}px`,
                 fontSize: FONT.xs,
                 fontFamily: "monospace",
                 color: "var(--ct-text-body)",

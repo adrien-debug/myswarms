@@ -59,25 +59,33 @@ async function authedFetch(
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
   let lastRes: Response | undefined;
+  let lastErr: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {
       await new Promise<void>((r) =>
         setTimeout(r, RETRY_BACKOFF_MS[attempt - 1])
       );
     }
-    const res = await fetch(`${ENGINE_URL}${path}`, {
-      ...init,
-      signal: AbortSignal.timeout(timeoutMs),
-      headers: {
-        Authorization: `Bearer ${ENGINE_TOKEN}`,
-        "Content-Type": "application/json",
-        ...(init.headers ?? {}),
-      },
-    });
-    if (!RETRY_STATUSES.includes(res.status)) return res;
-    lastRes = res;
+    try {
+      const res = await fetch(`${ENGINE_URL}${path}`, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: {
+          Authorization: `Bearer ${ENGINE_TOKEN}`,
+          "Content-Type": "application/json",
+          ...(init.headers ?? {}),
+        },
+      });
+      if (!RETRY_STATUSES.includes(res.status)) return res;
+      lastRes = res;
+    } catch (err) {
+      lastErr = err;
+      // network error (ECONNREFUSED, DNS, AbortError) — retry
+    }
   }
-  return lastRes!;
+  // All 3 attempts exhausted
+  if (lastRes !== undefined) return lastRes;
+  throw lastErr ?? new Error(`Network error after 3 attempts: ${path}`);
 }
 
 async function handleResponse<T>(

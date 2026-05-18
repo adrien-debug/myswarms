@@ -114,7 +114,7 @@ export function ToolPicker({
                       ? "1px solid var(--ct-border-accent)"
                       : "1px solid var(--ct-border)",
                     borderRadius: RADIUS.md,
-                    padding: `${SPACING.sm + 2}px ${SPACING.md}px`,
+                    padding: `${SPACING.s}px ${SPACING.md}px`,
                     textAlign: "left",
                     color: "var(--ct-text-primary)",
                     cursor: "pointer",
