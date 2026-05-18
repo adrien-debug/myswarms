@@ -78,11 +78,12 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   }
 
   let recentRuns: SwarmRunSummary[] = [];
+  let listRunsError: string | null = null;
   try {
     const ownerId = await getOwnerId();
     recentRuns = await swarmsClient.listRuns(id, 10, ownerId);
-  } catch {
-    // Engine peut ne pas avoir l'endpoint encore — fallback liste vide
+  } catch (err) {
+    listRunsError = err instanceof Error ? err.message : "Erreur de chargement des runs";
   }
 
   const totalRuns = recentRuns.length;
@@ -237,7 +238,11 @@ export default async function SwarmDetailPage({ params }: PageProps) {
 
       <div className="ct-card">
         <div className="ct-card-title">Runs récents</div>
-        {recentRuns.length === 0 ? (
+        {listRunsError ? (
+          <p className="ct-placeholder" style={{ color: "var(--ct-accent-strong)" }}>
+            ⚠️ {listRunsError}
+          </p>
+        ) : recentRuns.length === 0 ? (
           <p className="ct-placeholder">
             Aucun run pour l&apos;instant. Lance-en un via le bouton ci-dessus.
           </p>

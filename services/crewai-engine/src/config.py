@@ -130,18 +130,31 @@ class Settings(BaseSettings):
     FLOW_TIMEOUT_SECONDS: int = Field(default=900, gt=0, description="Max seconds before flow.kickoff() times out")
 
     # Per-task timeout multiplier for adaptive timeout calculation.
-    # Used with n_tasks to compute max(FLOW_TIMEOUT_SECONDS, n_tasks * PER_TASK_TIMEOUT_SECONDS).
+    # Used with n_tasks to compute min(MAX_FLOW_TIMEOUT_SECONDS, max(FLOW_TIMEOUT_SECONDS, n_tasks * PER_TASK_TIMEOUT_SECONDS)).
     PER_TASK_TIMEOUT_SECONDS: int = Field(
         default=120,
         gt=0,
-        description="Per-task timeout budget (seconds). Adaptive timeout = max(FLOW_TIMEOUT_SECONDS, n_tasks * this).",
+        description="Per-task timeout budget (seconds). Adaptive timeout = min(MAX, max(FLOW_TIMEOUT_SECONDS, n_tasks * this)).",
+    )
+
+    # Hard cap on the adaptive timeout — guarantees the invariant:
+    #   STALE_RUN_MAX_AGE_MINUTES * 60 > MAX_FLOW_TIMEOUT_SECONDS
+    # Default 1800s (30 min) < STALE_RUN_MAX_AGE_MINUTES default 45 min (2700s).
+    # Without this cap, n_tasks ≥ 16 would produce a timeout > stale cutoff,
+    # causing the cleanup job to kill a still-running valid run.
+    MAX_FLOW_TIMEOUT_SECONDS: int = Field(
+        default=1800,
+        gt=0,
+        description="Hard cap (seconds) on the adaptive flow timeout. Must satisfy MAX_FLOW_TIMEOUT_SECONDS < STALE_RUN_MAX_AGE_MINUTES * 60 to prevent cleanup from killing live runs.",
     )
 
     # Stale run cleanup — runs stuck in 'running' for longer than this are marked failed.
+    # Invariant: STALE_RUN_MAX_AGE_MINUTES * 60 > MAX_FLOW_TIMEOUT_SECONDS (2700 > 1800 — 15 min margin).
+    # Raised from 30 → 45 to guarantee the invariant with the default MAX_FLOW_TIMEOUT_SECONDS=1800.
     STALE_RUN_MAX_AGE_MINUTES: int = Field(
-        default=30,
+        default=45,
         gt=0,
-        description="Runs in 'running' status older than this (minutes) are marked failed at boot and by the cleanup job.",
+        description="Runs in 'running' status older than this (minutes) are marked failed at boot and by the cleanup job. Must satisfy STALE_RUN_MAX_AGE_MINUTES * 60 > MAX_FLOW_TIMEOUT_SECONDS.",
     )
 
     # Interval between stale-run cleanup sweeps (APScheduler job).
@@ -215,6 +228,17 @@ for _key, _val in _OPTIONAL_API_KEYS.items():
             "Boot info: %s is empty (optional — Hypercli-only policy, no LLM call expected on this provider).",
             _key,
         )
+
+# Stale-run / adaptive-timeout invariant :
+# STALE_RUN_MAX_AGE_MINUTES * 60 must be strictly greater than MAX_FLOW_TIMEOUT_SECONDS,
+# otherwise the cleanup job can mark a still-running (and still within budget) run as failed.
+if settings.STALE_RUN_MAX_AGE_MINUTES * 60 <= settings.MAX_FLOW_TIMEOUT_SECONDS:
+    _boot_logger.warning(
+        "Boot misconfiguration: STALE_RUN_MAX_AGE_MINUTES (%ds) <= MAX_FLOW_TIMEOUT_SECONDS (%ds)"
+        " — le cleanup peut tuer des runs encore vivants ; augmente STALE_RUN_MAX_AGE_MINUTES.",
+        settings.STALE_RUN_MAX_AGE_MINUTES * 60,
+        settings.MAX_FLOW_TIMEOUT_SECONDS,
+    )
 
 # COMPOSIO_USER_ID garde sa valeur par défaut en production → risque multi-tenant.
 if settings.COMPOSIO_USER_ID == "adrien" and _IS_PROD_ENV:

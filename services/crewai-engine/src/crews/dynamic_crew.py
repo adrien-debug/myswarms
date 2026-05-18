@@ -709,24 +709,22 @@ def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
     # le thread du crew. flush_run_steps(run_id) est appelé par le flow
     # AVANT que le run passe completed/failed pour garantir que tous les
     # steps queués sont persistés.
-    if run_id:
-        # WHY : `tasks_meta` DOIT être strictement iso (cardinalité + ordre)
-        # à `tasks` réellement passées au Crew. Le task_callback incrémente
-        # `current_task_idx` une fois par task EXÉCUTÉE puis indexe dans
-        # `tasks_meta` — toute task orpheline skippée par instantiate_tasks
-        # (agent_id NULL / agent inconnu / échec Task()) décalerait l'indice
-        # et attribuerait les steps au mauvais task_id. `task_pairs` porte
-        # déjà le meta {task_id, agent_id} résolu et validé par
-        # instantiate_tasks, dans le MÊME ordre que `tasks` (même boucle,
-        # même prédicat de skip) — on l'extrait tel quel, sans recalcul.
-        tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
-        writer = _StepWriter(run_id)
-        with _run_writers_lock:
-            _run_writers[run_id] = writer
-        step_cb, step_state = _build_step_callback(run_id, agents_map, tasks_meta, writer)
-        task_cb = _build_task_callback(run_id, step_state, tasks_meta, writer)
-        crew_kwargs["step_callback"] = step_cb
-        crew_kwargs["task_callback"] = task_cb
+    # HOTFIX 2026-05-18 : les callbacks step_callback/task_callback causent
+    # des blocages avec CrewAI 1.14 quand ils sont des closures non-
+    # sérialisables. Les runs produisent 2 steps puis restent figés jusqu'au
+    # timeout. Désactivés temporairement — le résultat final est persisté
+    # par finalize() et les steps ne le sont plus (perte acceptable vs
+    # blocage total). TODO V2 : réactiver avec des fonctions module-level.
+    #
+    # if run_id:
+    #     tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
+    #     writer = _StepWriter(run_id)
+    #     with _run_writers_lock:
+    #         _run_writers[run_id] = writer
+    #     step_cb, step_state = _build_step_callback(run_id, agents_map, tasks_meta, writer)
+    #     task_cb = _build_task_callback(run_id, step_state, tasks_meta, writer)
+    #     crew_kwargs["step_callback"] = step_cb
+    #     crew_kwargs["task_callback"] = task_cb
 
     return Crew(**crew_kwargs)
 

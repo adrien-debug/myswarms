@@ -184,6 +184,14 @@ async def _run_market_intel_scout() -> None:
 
         except asyncio.TimeoutError:
             logger.error("Market Intel Scout timed out after %ss", effective_timeout)
+            # WHY flush via to_thread: if kickoff() hung until wait_for expired, the
+            # _StepWriter worker + queue are still alive — drain them before marking
+            # failed to prevent _run_writers registry leak. Calling flush_run_steps()
+            # directly (sync) would block the APScheduler event loop for up to 30s
+            # (thread.join timeout) — precisely the DB-slow scenario that caused the
+            # timeout in the first place.
+            from .crews.dynamic_crew import flush_run_steps  # noqa: PLC0415
+            await asyncio.to_thread(flush_run_steps, run_id)
             swarm_store.update_swarm_run(
                 run_id,
                 status="failed",
@@ -192,7 +200,12 @@ async def _run_market_intel_scout() -> None:
             )
         except Exception as exc:  # noqa: BLE001
             logger.error("Market Intel Scout flow failed: %s", exc, exc_info=True)
+            # WHY flush via to_thread: idempotent — if run_crew already flushed this is
+            # a no-op; guards against leak if exception was raised before the flow's own
+            # flush. Non-blocking: avoids holding the event loop during thread.join.
             try:
+                from .crews.dynamic_crew import flush_run_steps  # noqa: PLC0415
+                await asyncio.to_thread(flush_run_steps, run_id)
                 swarm_store.update_swarm_run(
                     run_id,
                     status="failed",

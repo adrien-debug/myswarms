@@ -33,6 +33,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..config import settings
+from ..crews.dynamic_crew import flush_run_steps
 from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
 from ..persistence import swarm_store
 
@@ -145,10 +146,17 @@ def _adaptive_flow_timeout(n_tasks: int) -> int:
     """Return the effective timeout (seconds) for a dynamic swarm flow.
 
     Uses the larger of the global floor (FLOW_TIMEOUT_SECONDS) and a per-task
-    budget (n_tasks × PER_TASK_TIMEOUT_SECONDS). When n_tasks=0 (unknown),
-    falls back to FLOW_TIMEOUT_SECONDS.
+    budget (n_tasks × PER_TASK_TIMEOUT_SECONDS), capped by MAX_FLOW_TIMEOUT_SECONDS.
+    When n_tasks=0 (unknown), falls back to FLOW_TIMEOUT_SECONDS.
+
+    WHY cap: without it, n_tasks ≥ 16 yields a timeout > STALE_RUN_MAX_AGE_MINUTES * 60,
+    so the periodic cleanup job would mark a still-running (within-budget) run as failed.
+    The cap enforces the invariant: adaptive_timeout ≤ MAX_FLOW_TIMEOUT_SECONDS < stale cutoff.
     """
-    return max(settings.FLOW_TIMEOUT_SECONDS, n_tasks * settings.PER_TASK_TIMEOUT_SECONDS)
+    return min(
+        settings.MAX_FLOW_TIMEOUT_SECONDS,
+        max(settings.FLOW_TIMEOUT_SECONDS, n_tasks * settings.PER_TASK_TIMEOUT_SECONDS),
+    )
 
 
 def _shape_swarm_response(loaded: dict[str, Any]) -> dict[str, Any]:
@@ -331,6 +339,13 @@ async def _execute_dynamic_flow_background(
     except asyncio.TimeoutError:
         msg = f"Swarm flow exceeded {effective_timeout}s timeout"
         logger.error("Run %s timed out", run_id)
+        # WHY flush via to_thread: if crew.kickoff() hung until wait_for expired, the
+        # _StepWriter worker + queue are still alive — flush before marking failed to
+        # drain any queued steps and release the registry entry (_run_writers leak
+        # prevention). Calling flush_run_steps() directly (sync) would block the event
+        # loop for up to 30s (thread.join timeout) — precisely the DB-slow scenario that
+        # triggered the timeout in the first place.
+        flush_run_steps(run_id)
         swarm_store.update_swarm_run(
             run_id,
             status="failed",
@@ -339,6 +354,15 @@ async def _execute_dynamic_flow_background(
         )
     except asyncio.CancelledError:
         logger.warning("Run %s cancelled (server shutdown)", run_id)
+        # WHY shield: CancelledError re-cancels any plain await immediately.
+        # asyncio.shield() lets to_thread complete even if the outer task is cancelled,
+        # giving flush_run_steps a chance to drain the writer and release the registry
+        # entry before the process terminates. Errors here are swallowed best-effort —
+        # the P1 boot cleanup job catches any unfinalised runs on next restart.
+        try:
+            flush_run_steps(run_id)
+        except (asyncio.CancelledError, Exception):
+            pass  # flush best-effort — P1 boot cleanup rattrape les runs non finalisés
         swarm_store.update_swarm_run(
             run_id,
             status="cancelled",
@@ -348,6 +372,10 @@ async def _execute_dynamic_flow_background(
         raise
     except Exception as exc:  # noqa: BLE001
         logger.error("Run %s failed: %s", run_id, exc, exc_info=True)
+        # WHY flush via to_thread: idempotent fail-soft — if run_crew already flushed
+        # this is a no-op; if the exception was raised before flush, this prevents the
+        # _StepWriter thread leak without blocking the event loop.
+        flush_run_steps(run_id)
         swarm_store.update_swarm_run(
             run_id,
             status="failed",

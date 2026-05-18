@@ -6,6 +6,7 @@ const STATUS_STYLES: Record<string, CSSProperties> = {
   failed: { background: "var(--ct-status-failed-bg)", color: "var(--ct-status-failed)", border: "1px solid var(--ct-status-failed-border)" },
   cancelled: { background: "var(--ct-status-cancelled-bg)", color: "var(--ct-status-cancelled)", border: "1px solid var(--ct-status-cancelled-border)" },
   paused_hitl: { background: "var(--ct-status-paused-bg)", color: "var(--ct-status-paused)", border: "1px solid var(--ct-status-paused-border)" },
+  pending: { background: "var(--ct-surface-2)", color: "var(--ct-text-muted)", border: "1px solid var(--ct-border)" },
 };
 
 const BASE_STYLE: CSSProperties = {

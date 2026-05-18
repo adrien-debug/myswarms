@@ -75,7 +75,7 @@ export function StepCard({ step }: StepCardProps) {
         ) : null}
       </div>
 
-      {step.error_text ? (
+      {step.error_text != null && step.error_text !== "" ? (
         <pre
           style={{
             background: "var(--ct-accent-soft)",
@@ -91,7 +91,7 @@ export function StepCard({ step }: StepCardProps) {
         >
           {step.error_text}
         </pre>
-      ) : step.output_text ? (
+      ) : step.output_text != null ? (
         <pre
           style={{
             background: "var(--ct-surface-2)",

@@ -156,7 +156,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {run.error_text ? (
+      {run.error_text != null && run.error_text !== "" ? (
         <div
           className="ct-card"
           style={{
@@ -179,7 +179,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         </div>
       ) : null}
 
-      {run.result_text ? (
+      {run.result_text != null ? (
         <div className="ct-card">
           <div className="ct-card-title">Résultat</div>
           <pre
