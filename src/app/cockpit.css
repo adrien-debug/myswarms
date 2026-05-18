@@ -6,12 +6,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ct-bg-deep: #1A050B;
-  --ct-accent-maroon: #8A1538;
-  --ct-accent: #be123c;
-  --ct-accent-strong: #e11d48;
-  --ct-accent-soft: rgba(225, 29, 72, 0.18);
-  --ct-border-accent: rgba(225, 29, 72, 0.55);
+  /* ── Hearst Hive accent override (#3FA7E0) ── */
+  --ct-bg-deep: #030d14;
+  --ct-accent-maroon: #1a4a6a;
+  --ct-accent: #3FA7E0;
+  --ct-accent-strong: #60bae8;
+  --ct-accent-soft: rgba(63, 167, 224, 0.18);
+  --ct-border-accent: rgba(63, 167, 224, 0.55);
 
   --ct-rail-left: 88px;
   --ct-rail-right: 420px;
