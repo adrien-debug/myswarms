@@ -6,7 +6,7 @@ operations log a warning and return None without crashing.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ..config import settings
@@ -135,6 +135,40 @@ def get_run(
     except Exception as exc:  # noqa: BLE001
         logger.error("get_run failed for %s: %s", kickoff_id, exc)
         return None
+
+
+def cleanup_stale_runs(max_age_minutes: int) -> int:
+    """Mark 'running' chief_run_log rows older than max_age_minutes as failed.
+
+    Targets rows with status='running' AND started_at < now(utc) - max_age_minutes.
+    Updates status to 'failed', sets error_text and finished_at. Fail-soft:
+    returns 0 on any error.
+
+    Returns the number of rows updated.
+    """
+    client = _get_client()
+    if client is None:
+        return 0
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)).isoformat()
+        result = (
+            client.table("chief_run_log")
+            .update(
+                {
+                    "status": "failed",
+                    "error_text": "Run abandoned — no heartbeat (stale cleanup)",
+                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+            .eq("status", "running")
+            .lt("started_at", cutoff)
+            .execute()
+        )
+        count = len(result.data) if result and result.data else 0
+        return count
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("cleanup_stale_runs (chief_run_log) failed: %s", exc)
+        return 0
 
 
 def list_runs(

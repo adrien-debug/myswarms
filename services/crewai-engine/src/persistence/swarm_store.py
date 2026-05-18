@@ -40,7 +40,7 @@ Contrat de colonnes (cf migration 0006_swarms_dynamic.sql) :
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ..config import settings
@@ -1268,6 +1268,40 @@ def update_run_step(step_id: str, **fields: Any) -> bool:
     except Exception as exc:  # noqa: BLE001
         logger.warning("update_run_step failed for step %s: %s", step_id, exc)
         return False
+
+
+def cleanup_stale_runs(max_age_minutes: int) -> int:
+    """Mark 'running' swarm_runs older than max_age_minutes as failed.
+
+    Targets rows in `swarm_runs` with status='running' AND
+    started_at < now(utc) - max_age_minutes. Updates status to 'failed',
+    sets error_text and finished_at. Fail-soft: returns 0 on any error.
+
+    Returns the number of rows updated.
+    """
+    client = _get_client()
+    if client is None:
+        return 0
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)).isoformat()
+        result = (
+            client.table("swarm_runs")
+            .update(
+                {
+                    "status": "failed",
+                    "error_text": "Run abandoned — no heartbeat (stale cleanup)",
+                    "finished_at": _now_iso(),
+                }
+            )
+            .eq("status", "running")
+            .lt("started_at", cutoff)
+            .execute()
+        )
+        count = len(result.data) if result and result.data else 0
+        return count
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("cleanup_stale_runs (swarm_runs) failed: %s", exc)
+        return 0
 
 
 def append_run_step(
