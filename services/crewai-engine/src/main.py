@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .observability.langfuse_setup import init_observability
+from .persistence import swarm_store, run_store
 from .routes.health import router as health_router
 from .routes.crews import router as crews_router
 from .routes.swarms import router as swarms_router
@@ -66,6 +67,19 @@ def _resolve_allowed_origins() -> list[str]:
 async def lifespan(app: FastAPI):  # noqa: RUF029
     """FastAPI lifespan — starts/stops APScheduler."""
     scheduler = None
+
+    # Boot stale-run cleanup — fail-soft: never prevents startup.
+    try:
+        n_swarm = swarm_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
+        n_chief = run_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
+        logger.info(
+            "Boot stale-run cleanup: %d swarm_runs + %d chief_run_log rows marked failed",
+            n_swarm,
+            n_chief,
+        )
+    except Exception as _exc:  # noqa: BLE001
+        logger.warning("Boot stale-run cleanup failed (non-fatal): %s", _exc)
+
     if settings.SCHEDULER_ENABLED:
         scheduler = create_scheduler()
         scheduler.start()

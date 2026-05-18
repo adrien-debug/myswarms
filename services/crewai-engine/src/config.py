@@ -125,7 +125,31 @@ class Settings(BaseSettings):
 
     # Flow execution timeout — if flow.kickoff() exceeds this, status → "failed".
     # gt=0 guard: asyncio.wait_for(timeout=0) would expire immediately on every kickoff.
-    FLOW_TIMEOUT_SECONDS: int = Field(default=300, gt=0, description="Max seconds before flow.kickoff() times out")
+    # Raised from 300 to 900: Kimi K2.6 swarms with 4 tasks take 360-480s;
+    # the only successful production run completed in ~250s — 900 gives headroom.
+    FLOW_TIMEOUT_SECONDS: int = Field(default=900, gt=0, description="Max seconds before flow.kickoff() times out")
+
+    # Per-task timeout multiplier for adaptive timeout calculation.
+    # Used with n_tasks to compute max(FLOW_TIMEOUT_SECONDS, n_tasks * PER_TASK_TIMEOUT_SECONDS).
+    PER_TASK_TIMEOUT_SECONDS: int = Field(
+        default=120,
+        gt=0,
+        description="Per-task timeout budget (seconds). Adaptive timeout = max(FLOW_TIMEOUT_SECONDS, n_tasks * this).",
+    )
+
+    # Stale run cleanup — runs stuck in 'running' for longer than this are marked failed.
+    STALE_RUN_MAX_AGE_MINUTES: int = Field(
+        default=30,
+        gt=0,
+        description="Runs in 'running' status older than this (minutes) are marked failed at boot and by the cleanup job.",
+    )
+
+    # Interval between stale-run cleanup sweeps (APScheduler job).
+    STALE_RUN_CLEANUP_INTERVAL_MINUTES: int = Field(
+        default=10,
+        gt=0,
+        description="Interval in minutes between periodic stale-run cleanup sweeps.",
+    )
 
     # Max lag (seconds) before APScheduler skips a misfired job entirely.
     MISFIRE_GRACE_TIME_SECONDS: int = Field(default=300, gt=0)  # max lag before skipping misfired job
@@ -141,6 +165,25 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── P2-1 : silence LiteLLM botocore pre-load noise at ERROR level.
+# WHY: litellm imports botocore at startup and emits WARNING-level noise about
+# missing AWS credentials even when AWS is never used. Setting ERROR silences
+# those warnings without hiding real LiteLLM errors (which are ERROR+).
+import warnings  # noqa: E402
+
+logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+
+# ── P2-2 : suppress pydantic UserWarning about non-serializable callbacks.
+# WHY: CrewAI passes function callbacks into pydantic models; pydantic emits
+# "function callbacks cannot be serialized and will prevent checkpointing"
+# on every crew creation. We silence this one specific message — NOT all
+# UserWarnings — so that we don't accidentally swallow unrelated warnings.
+warnings.filterwarnings(
+    "ignore",
+    message=r".*callbacks cannot be serialized.*",
+    category=UserWarning,
+)
 
 # ── Boot-time misconfig warnings ─────────────────────────────────────────────
 # Ne cassent PAS le boot — logging uniquement. Permet d'identifier les

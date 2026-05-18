@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from .config import settings
 
@@ -136,6 +137,7 @@ async def _run_market_intel_scout() -> None:
         # Deferred import — ChiefOfStaffFlow pattern, avoid circularity at module load time.
         from .flows.dynamic_swarm_flow import DynamicSwarmFlow
         from .persistence import swarm_store
+        from .routes.swarms import _adaptive_flow_timeout
 
         run_id = str(uuid4())
         trigger = "market_intel_morning"
@@ -154,6 +156,15 @@ async def _run_market_intel_scout() -> None:
             inputs_json=inputs,
         )
 
+        # Adaptive timeout: load task count for this swarm from swarm_store.
+        # Fail-soft: if lookup fails, n_tasks=0 → falls back to FLOW_TIMEOUT_SECONDS.
+        try:
+            _loaded = swarm_store.get_swarm(swarm_id)
+            n_tasks = len((_loaded or {}).get("tasks") or []) if _loaded else 0
+        except Exception:  # noqa: BLE001
+            n_tasks = 0
+        effective_timeout = _adaptive_flow_timeout(n_tasks)
+
         try:
             flow = DynamicSwarmFlow()
             state_dict = {
@@ -165,18 +176,18 @@ async def _run_market_intel_scout() -> None:
             }
             await asyncio.wait_for(
                 asyncio.to_thread(flow.kickoff, inputs=state_dict),
-                timeout=settings.FLOW_TIMEOUT_SECONDS,
+                timeout=effective_timeout,
             )
             logger.info("Market Intel Scout completed — run_id=%s", run_id)
 
             await asyncio.to_thread(_send_telegram_digest, "market_intel_morning completed", trigger)
 
         except asyncio.TimeoutError:
-            logger.error("Market Intel Scout timed out after %ss", settings.FLOW_TIMEOUT_SECONDS)
+            logger.error("Market Intel Scout timed out after %ss", effective_timeout)
             swarm_store.update_swarm_run(
                 run_id,
                 status="failed",
-                error_text=f"Timeout after {settings.FLOW_TIMEOUT_SECONDS}s",
+                error_text=f"Timeout after {effective_timeout}s",
                 finished_at=datetime.now(timezone.utc).isoformat(),
             )
         except Exception as exc:  # noqa: BLE001
@@ -220,6 +231,26 @@ def _send_telegram_digest(result: str, trigger: str) -> None:
         logger.info("Telegram digest sent — trigger=%s, result=%s", trigger, send_result)
     except Exception as exc:  # noqa: BLE001
         logger.error("Telegram digest failed for trigger=%s: %s", trigger, exc)
+
+
+async def _cleanup_stale_runs() -> None:
+    """Periodic job: mark zombie 'running' rows as failed in both stores.
+
+    Fail-soft: any exception is caught and logged — never crashes the scheduler.
+    """
+    try:
+        from .persistence import swarm_store, run_store  # noqa: PLC0415
+
+        n_swarm = swarm_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
+        n_chief = run_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
+        if n_swarm or n_chief:
+            logger.info(
+                "Stale-run cleanup: marked %d swarm_runs + %d chief_run_log rows as failed",
+                n_swarm,
+                n_chief,
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Stale-run cleanup job failed unexpectedly: %s", exc)
 
 
 def create_scheduler() -> AsyncIOScheduler:
@@ -293,6 +324,15 @@ def create_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
         max_instances=1,
         misfire_grace_time=settings.MISFIRE_GRACE_TIME_SECONDS,
+    )
+
+    # Stale-run cleanup — periodic sweep to mark zombie "running" rows as failed.
+    scheduler.add_job(
+        _cleanup_stale_runs,
+        IntervalTrigger(minutes=settings.STALE_RUN_CLEANUP_INTERVAL_MINUTES),
+        id="stale-run-cleanup",
+        replace_existing=True,
+        max_instances=1,
     )
 
     logger.info(

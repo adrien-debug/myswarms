@@ -141,6 +141,16 @@ class ArchitectGenerateRequest(BaseModel):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
+def _adaptive_flow_timeout(n_tasks: int) -> int:
+    """Return the effective timeout (seconds) for a dynamic swarm flow.
+
+    Uses the larger of the global floor (FLOW_TIMEOUT_SECONDS) and a per-task
+    budget (n_tasks × PER_TASK_TIMEOUT_SECONDS). When n_tasks=0 (unknown),
+    falls back to FLOW_TIMEOUT_SECONDS.
+    """
+    return max(settings.FLOW_TIMEOUT_SECONDS, n_tasks * settings.PER_TASK_TIMEOUT_SECONDS)
+
+
 def _shape_swarm_response(loaded: dict[str, Any]) -> dict[str, Any]:
     """Aplatit le payload swarm_store.get_swarm() → réponse SwarmRecord côté front.
 
@@ -291,6 +301,7 @@ async def _execute_dynamic_flow_background(
     run_id: str,
     trigger: str,
     inputs: dict[str, Any],
+    n_tasks: int = 0,
 ) -> None:
     """Fire-and-forget : exécute DynamicSwarmFlow dans un thread, met à jour la DB.
 
@@ -299,7 +310,11 @@ async def _execute_dynamic_flow_background(
     - Timeout → status="failed", error_text
     - CancelledError (SIGTERM) → status="cancelled"
     - Exception → status="failed", error_text
+
+    `n_tasks` : nombre de tasks du swarm, utilisé pour un timeout adaptatif
+    via `_adaptive_flow_timeout`. n_tasks=0 → retombe sur FLOW_TIMEOUT_SECONDS.
     """
+    effective_timeout = _adaptive_flow_timeout(n_tasks)
     try:
         flow = DynamicSwarmFlow()
         state_dict = {
@@ -310,11 +325,11 @@ async def _execute_dynamic_flow_background(
         }
         await asyncio.wait_for(
             asyncio.to_thread(flow.kickoff, inputs=state_dict),
-            timeout=settings.FLOW_TIMEOUT_SECONDS,
+            timeout=effective_timeout,
         )
         # finalize() a déjà posé status=completed côté DB.
     except asyncio.TimeoutError:
-        msg = f"Swarm flow exceeded {settings.FLOW_TIMEOUT_SECONDS}s timeout"
+        msg = f"Swarm flow exceeded {effective_timeout}s timeout"
         logger.error("Run %s timed out", run_id)
         swarm_store.update_swarm_run(
             run_id,
@@ -615,12 +630,16 @@ async def kickoff_swarm_endpoint(
         inputs_json=request.inputs or {},
     )
 
+    # n_tasks is known here (swarm already loaded) — pass for adaptive timeout.
+    n_tasks = len(loaded.get("tasks") or [])
+
     task = asyncio.create_task(
         _execute_dynamic_flow_background(
             swarm_id=swarm_id,
             run_id=run_id,
             trigger=request.trigger,
             inputs=request.inputs or {},
+            n_tasks=n_tasks,
         )
     )
     _running_tasks.add(task)
