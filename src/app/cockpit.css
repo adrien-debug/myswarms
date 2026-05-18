@@ -507,3 +507,27 @@ select:focus-visible {
 .ct-tr:hover .ct-td {
   background: var(--ct-surface-1);
 }
+
+/* Chief of Staff — pulse animation pour AgentStatePanel */
+.ct-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cos-accent, #7cf2c4);
+  box-shadow: 0 0 8px var(--cos-accent, #7cf2c4);
+  display: inline-block;
+  animation: ct-pulse 2s infinite;
+}
+
+@keyframes ct-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* breadcrumb link style */
+.ct-breadcrumb-link {
+  font-size: 13px;
+  color: var(--ct-text-muted);
+  text-decoration: none;
+}
+.ct-breadcrumb-link:hover { text-decoration: underline; }

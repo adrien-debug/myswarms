@@ -55,6 +55,16 @@ const TIPS_BY_AREA: Record<string, Tip[]> = {
       body: "Chaque step affiche tokens, cost et latence. Cliquable pour le détail.",
     },
   ],
+  "chief-of-staff": [
+    {
+      title: "Chief of Staff",
+      body: "8 agents orchestrés par CrewAI : inbox, classification, priorité, drafts, calendar. Brief à 08h et 18h30.",
+    },
+    {
+      title: "Decision Card",
+      body: "La carte centrale affiche le P0 du jour avec un brouillon de réponse. M → voir le run complet.",
+    },
+  ],
   crews: [
     {
       title: "Brief du matin",
@@ -72,6 +82,7 @@ function pickArea(pathname: string): keyof typeof TIPS_BY_AREA {
   if (/^\/swarms\/[0-9a-f-]{36}\/runs\//i.test(pathname)) return "run";
   if (pathname === "/swarms/new" || pathname.endsWith("/edit")) return "builder";
   if (pathname.startsWith("/swarms")) return "swarms";
+  if (pathname.startsWith("/crews/chief-of-staff")) return "chief-of-staff";
   if (pathname.startsWith("/crews")) return "crews";
   return "home";
 }
