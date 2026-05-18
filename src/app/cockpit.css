@@ -475,28 +475,6 @@ html, body {
   margin-bottom: 6px;
 }
 
-/* Primary button */
-.ct-primary-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--ct-accent);
-  color: #fff;
-  border: 1px solid var(--ct-border-accent);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--ct-dur-base) var(--ct-ease), opacity var(--ct-dur-base) var(--ct-ease);
-  text-decoration: none;
-}
-.ct-primary-btn:hover:not(:disabled) { background: var(--ct-accent-strong); }
-.ct-primary-btn:active:not(:disabled) { transform: scale(0.98); }
-.ct-primary-btn:focus-visible { outline: 2px solid var(--ct-accent-strong); outline-offset: 2px; }
-.ct-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 /* Focus visible — inputs et textareas */
 input:focus-visible,
 textarea:focus-visible,
