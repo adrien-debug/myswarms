@@ -50,6 +50,7 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
         className="ct-seg-btn primary"
         onClick={handleRun}
         disabled={busy}
+        aria-disabled={busy}
         title="Lance un run on_demand"
       >
         {busy ? "Run…" : "Run"}

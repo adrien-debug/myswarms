@@ -1,4 +1,3 @@
-import { SPACING, FONT, RADIUS, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT } from "@/lib/ui/tokens";
 import type { DiffItem } from "@/lib/crews/chiefTypes";
 
 interface Props {
@@ -7,19 +6,19 @@ interface Props {
   elapsed: string;
 }
 
-// Largeur minimale de la colonne temps — pas de token exact, const locale documentée.
+// Largeur minimale de la colonne temps (px)
 const TIME_COL_W = 38;
 
 /**
- * Parse bold markdown (**text**) and render alternating plain/bold segments.
- * Bold segments get color: var(--cos-warn).
+ * Parse bold markdown (**text**) et render des segments alternés plain/bold.
+ * Les segments gras reçoivent color: var(--ct-accent-strong).
  */
 function parseBold(text: string): React.ReactNode {
   const parts = text.split("**");
   return parts.map((part, i) => {
     if (i % 2 === 1) {
       return (
-        <strong key={i} style={{ color: "var(--cos-warn)", fontWeight: FONT_WEIGHT.bold }}>
+        <strong key={i} style={{ color: "var(--ct-accent-strong)", fontWeight: 700 }}>
           {part}
         </strong>
       );
@@ -37,30 +36,21 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: SPACING.lg,
+          marginBottom: 16,
         }}
       >
-        <span
-          style={{
-            fontSize: FONT.xs,
-            fontWeight: FONT_WEIGHT.bold,
-            letterSpacing: LETTER_SPACING.wide,
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-          }}
-        >
+        <span className="ct-card-title" style={{ marginBottom: 0 }}>
           Agent Diff · {sinceLabel}
         </span>
         <span
           style={{
-            fontSize: FONT.xs,
-            fontWeight: FONT_WEIGHT.semibold,
-            letterSpacing: LETTER_SPACING.tight,
+            fontSize: 10,
+            fontWeight: 600,
             color: "var(--ct-text-faint)",
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
-            borderRadius: RADIUS.sm,
-            padding: `2px ${SPACING.xxs}px`,
+            borderRadius: 4,
+            padding: "2px 6px",
           }}
         >
           {elapsed}
@@ -69,53 +59,50 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
 
       {/* Items */}
       {items.length === 0 ? (
-        <div
-          style={{
-            fontSize: FONT.base,
-            color: "var(--ct-text-faint)",
-            fontStyle: "italic",
-            textAlign: "center",
-            padding: `${SPACING.xl}px 0`,
-          }}
-        >
+        <p className="ct-placeholder" style={{ textAlign: "center", padding: "24px 0" }}>
           Aucun diff · Lance un run pour voir l&apos;activité des agents
-        </div>
+        </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.hair }}>
+        <div className="activity-list" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {items.map((item, i) => (
             <div
               key={i}
+              className="activity-item"
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: SPACING.md,
-                padding: `${SPACING.xxs}px 0`,
+                gap: 12,
+                padding: "4px 0",
                 borderBottom: "1px solid var(--ct-border-soft)",
+                cursor: "default",
               }}
             >
               {/* Time */}
               <span
                 style={{
-                  fontFamily: "monospace",
-                  fontSize: FONT.xs,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
                   color: "var(--ct-text-muted)",
                   minWidth: TIME_COL_W,
                   flexShrink: 0,
-                  lineHeight: LINE_HEIGHT.base,
+                  lineHeight: 1.6,
                   paddingTop: 1,
                 }}
               >
                 {item.time}
               </span>
 
-              {/* Text */}
+              {/* Agent name + text */}
               <span
                 style={{
-                  fontSize: FONT.base,
+                  fontSize: 13,
                   color: "var(--ct-text-body)",
-                  lineHeight: LINE_HEIGHT.base,
+                  lineHeight: 1.6,
                 }}
               >
+                <span style={{ color: "var(--ct-text-primary)", fontWeight: 600 }}>
+                  {item.agentName}
+                </span>{" "}
                 {parseBold(item.text)}
               </span>
             </div>
@@ -126,8 +113,8 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
       {/* Footer */}
       <div
         style={{
-          marginTop: SPACING.lg,
-          fontSize: FONT.xs,
+          marginTop: 16,
+          fontSize: 11,
           color: "var(--ct-text-muted)",
           fontStyle: "italic",
         }}

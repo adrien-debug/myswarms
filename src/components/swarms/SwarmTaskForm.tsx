@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface SwarmTaskFormProps {
   initialTask?: TaskInput;
@@ -34,13 +35,20 @@ export function SwarmTaskForm({
   const [task, setTask] = useState<TaskInput>(
     initialTask ?? buildDefaultTask(agents),
   );
+  const [error, setError] = useState<string | null>(null);
 
   const update = <K extends keyof TaskInput>(key: K, value: TaskInput[K]) => {
+    setError(null);
     setTask((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (!task.name.trim()) { setError("Le nom est requis."); return; }
+    if (!task.agent_id) { setError("Assigne un agent à la tâche."); return; }
+    if (!task.description.trim()) { setError("La description est requise."); return; }
+    if (!task.expected_output.trim()) { setError("La sortie attendue est requise."); return; }
     onSubmit(task);
   };
 
@@ -104,7 +112,7 @@ export function SwarmTaskForm({
           onChange={(e) => update("description", e.target.value)}
           required
           rows={4}
-          style={{ ...inputStyle, fontFamily: "monospace", resize: "vertical" }}
+          style={{ ...inputStyle, fontFamily: "var(--font-mono)", resize: "vertical" }}
         />
       </label>
 
@@ -115,7 +123,7 @@ export function SwarmTaskForm({
           onChange={(e) => update("expected_output", e.target.value)}
           required
           rows={3}
-          style={{ ...inputStyle, fontFamily: "monospace", resize: "vertical" }}
+          style={{ ...inputStyle, fontFamily: "var(--font-mono)", resize: "vertical" }}
         />
       </label>
 
@@ -142,15 +150,32 @@ export function SwarmTaskForm({
         </select>
       </label>
 
+      {error ? (
+        <div
+          role="alert"
+          style={{
+            background: "var(--ct-alert-error-bg)",
+            border: "1px solid var(--ct-alert-error-border)",
+            color: "var(--ct-alert-error-text)",
+            padding: `${SPACING.sm}px ${SPACING.md}px`,
+            borderRadius: RADIUS.sm,
+            fontSize: FONT.sm,
+            lineHeight: LINE_HEIGHT.tight,
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+
       <div style={{ display: "flex", gap: SPACING.sm, justifyContent: "flex-end" }}>
         {onCancel ? (
           <button type="button" className="ct-seg-btn" onClick={onCancel}>
             Annuler
           </button>
         ) : null}
-        <button type="submit" className="ct-seg-btn primary">
+        <Button type="submit" variant="primary">
           {initialTask ? "Mettre à jour" : "Ajouter tâche"}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -176,5 +201,4 @@ const inputStyle: React.CSSProperties = {
   color: "var(--ct-text-primary)",
   fontSize: FONT.base,
   fontFamily: "inherit",
-  outline: "none",
 };

@@ -32,7 +32,7 @@ export function StepCard({ step }: StepCardProps) {
         >
           <span
             style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: FONT.xs,
               color: "var(--ct-text-muted)",
             }}

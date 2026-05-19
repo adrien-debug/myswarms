@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ToolPicker } from "./ToolPicker";
 import type {
   AgentInput,
@@ -58,6 +58,7 @@ function ToolsPickerWithAgentSelector({
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(
     assignableAgents[0]?.id ?? null,
   );
+  const agentSelectId = useId();
 
   if (assignableAgents.length === 0) {
     return (
@@ -70,7 +71,7 @@ function ToolsPickerWithAgentSelector({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
-      <label style={{ display: "flex", flexDirection: "column", gap: SPACING.xxs }}>
+      <label htmlFor={agentSelectId} style={{ display: "flex", flexDirection: "column", gap: SPACING.xxs }}>
         <span
           style={{
             fontSize: FONT.nano,
@@ -83,6 +84,7 @@ function ToolsPickerWithAgentSelector({
           Agent ciblé
         </span>
         <select
+          id={agentSelectId}
           value={selectedAgentId ?? ""}
           onChange={(e) => setSelectedAgentId(e.target.value || null)}
           style={{
@@ -93,7 +95,6 @@ function ToolsPickerWithAgentSelector({
             color: "var(--ct-text-primary)",
             fontSize: FONT.base,
             fontFamily: "inherit",
-            outline: "none",
           }}
         >
           {assignableAgents.map((a) => (

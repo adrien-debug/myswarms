@@ -89,7 +89,7 @@ export default async function ChiefOfStaffHistoryPage() {
               <tbody>
                 {runs.map((r) => (
                   <tr key={r.kickoff_id} className="ct-tr">
-                    <td className="ct-td" style={{ fontFamily: "monospace", fontSize: FONT.xs }}>
+                    <td className="ct-td" style={{ fontFamily: "var(--font-mono)", fontSize: FONT.xs }}>
                       <Link
                         href={`/crews/${CREW_NAME}/runs/${r.kickoff_id}`}
                         prefetch={false}

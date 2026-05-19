@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { LLMPicker } from "./LLMPicker";
 import {
   type AgentInput,
@@ -8,7 +9,7 @@ import {
   type ModelProvider,
   AgentRoleSchema,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface SwarmAgentFormProps {
   initialAgent?: AgentInput;
@@ -36,13 +37,18 @@ export function SwarmAgentForm({
   onCancel,
 }: SwarmAgentFormProps) {
   const [agent, setAgent] = useState<AgentInput>(initialAgent ?? DEFAULT_AGENT);
+  const [error, setError] = useState<string | null>(null);
 
   const update = <K extends keyof AgentInput>(key: K, value: AgentInput[K]) => {
+    setError(null);
     setAgent((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (!agent.name.trim()) { setError("Le nom est requis."); return; }
+    if (!agent.system_prompt.trim()) { setError("Le system prompt est requis."); return; }
     onSubmit(agent);
   };
 
@@ -85,7 +91,7 @@ export function SwarmAgentForm({
           onChange={(e) => update("system_prompt", e.target.value)}
           required
           rows={6}
-          style={{ ...inputStyle, fontFamily: "monospace", resize: "vertical" }}
+          style={{ ...inputStyle, fontFamily: "var(--font-mono)", resize: "vertical" }}
         />
       </label>
 
@@ -100,15 +106,32 @@ export function SwarmAgentForm({
         onMaxTokensChange={(t) => update("max_tokens", t)}
       />
 
+      {error ? (
+        <div
+          role="alert"
+          style={{
+            background: "var(--ct-alert-error-bg)",
+            border: "1px solid var(--ct-alert-error-border)",
+            color: "var(--ct-alert-error-text)",
+            padding: `${SPACING.sm}px ${SPACING.md}px`,
+            borderRadius: RADIUS.sm,
+            fontSize: FONT.sm,
+            lineHeight: LINE_HEIGHT.tight,
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+
       <div style={{ display: "flex", gap: SPACING.sm, justifyContent: "flex-end" }}>
         {onCancel ? (
           <button type="button" className="ct-seg-btn" onClick={onCancel}>
             Annuler
           </button>
         ) : null}
-        <button type="submit" className="ct-seg-btn primary">
+        <Button type="submit" variant="primary">
           {initialAgent ? "Mettre à jour" : "Ajouter agent"}
-        </button>
+        </Button>
       </div>
     </form>
   );

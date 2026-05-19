@@ -6,6 +6,8 @@ import { SwarmBuilder } from "@/components/swarms/SwarmBuilder";
 import type { SwarmRecord, Tool } from "@/lib/forms/swarmSchemas";
 import { RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
+import { PageTitle } from "@/components/ui/PageTitle";
+import { ErrorLayout } from "@/components/ui/ErrorLayout";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -98,25 +100,19 @@ export default function EditSwarmPage({ params }: PageProps) {
             <Chevron direction="left" />Swarms
           </Link>
         </div>
-        <h1 className="ct-title">Erreur</h1>
-        <div
-          className="ct-card ct-card--accent"
-        >
-          <div className="ct-card-title">Chargement échoué</div>
-          <p className="ct-card-body">{error ?? "Swarm introuvable."}</p>
-        </div>
+        <ErrorLayout
+          title="Édition impossible"
+          message={error ?? "Swarm introuvable."}
+        />
       </>
     );
   }
 
   // Conversion SwarmRecord → SwarmInput.
-  // H1 fix : `tasks` et `tool_bindings` peuvent avoir `agent_id=null` (cas
-  // réel après cascade SET NULL en DB — task/binding orpheline). Le builder
-  // attend `agent_id: string`. On normalise null → "" pour que :
-  //   - le sub-form (SwarmTaskForm) affiche "Aucun agent — re-pair requis"
-  //   - la validation Zod (TaskInputSchema) bloque le save tant que pas re-pair
-  // Cohérence : TaskInputSchema reste `required`, le UI force la sélection
-  // avant le PATCH.
+  // `tasks` et `tool_bindings` peuvent avoir `agent_id=null` après une cascade
+  // SET NULL en DB (task/binding orpheline). Le builder attend `agent_id: string`.
+  // On normalise null → "" : SwarmTaskForm affiche "Aucun agent — re-pair requis"
+  // et la validation Zod bloque le save tant que le re-pair n'est pas effectué.
   const initialSwarm = {
     id: swarm.id,
     name: swarm.name,
@@ -146,7 +142,7 @@ export default function EditSwarmPage({ params }: PageProps) {
           <Chevron direction="left" />{swarm.name}
         </Link>
       </div>
-      <h1 className="ct-title">Éditer le swarm</h1>
+      <PageTitle>Éditer le swarm</PageTitle>
       <p className="ct-sub">Modifie nom, agents, tâches et tools liés.</p>
 
       <SwarmBuilder

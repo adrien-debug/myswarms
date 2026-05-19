@@ -8,6 +8,8 @@ import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { FONT, LINE_HEIGHT, SPACING } from "@/lib/ui/tokens";
 import { requireOwnerId } from "@/lib/auth/owner";
 import { Chevron } from "@/components/ui/Chevron";
+import { PageTitle } from "@/components/ui/PageTitle";
+import { ErrorLayout } from "@/components/ui/ErrorLayout";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -46,20 +48,22 @@ export default async function RunDetailPage({ params }: PageProps) {
         <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
           <Chevron direction="left" />Cockpit
         </Link>
-        <h1 className="ct-title" style={{ marginTop: SPACING.sm }}>
-          Run {runId.slice(0, 8)}…
-        </h1>
-        <div
-          className="ct-card"
-          style={{
-            border: "1px solid var(--ct-border-accent)",
-            background: "var(--ct-accent-soft)",
-          }}
+        <ErrorLayout
+          title="Run introuvable"
+          message={`Impossible de charger le run : ${err instanceof Error ? err.message : "erreur inconnue"}`}
         >
-          <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
-            Impossible de charger le run : {err instanceof Error ? err.message : "erreur inconnue"}
-          </p>
-        </div>
+          <div
+            className="ct-card"
+            style={{
+              border: "1px solid var(--ct-border-accent)",
+              background: "var(--ct-accent-soft)",
+            }}
+          >
+            <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
+              {err instanceof Error ? err.message : "erreur inconnue"}
+            </p>
+          </div>
+        </ErrorLayout>
       </>
     );
   }
@@ -90,15 +94,15 @@ export default async function RunDetailPage({ params }: PageProps) {
       </Link>
 
       <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}>
-        <h1 className="ct-title" style={{ fontFamily: "monospace", marginBottom: SPACING.sm }}>
+        <PageTitle variant="mono" style={{ marginBottom: SPACING.sm }}>
           {runId.slice(0, 8)}…
-        </h1>
+        </PageTitle>
         <div style={{ display: "flex", alignItems: "center", gap: SPACING.md }}>
           <StatusBadge status={run.status} size="md" />
           <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>·</span>
           <span style={{ fontSize: FONT.base, color: "var(--ct-text-body)" }}>
             trigger :{" "}
-            <span style={{ fontFamily: "monospace", color: "var(--ct-text-strong)" }}>
+            <span style={{ fontFamily: "var(--font-mono)", color: "var(--ct-text-strong)" }}>
               {triggerLabel}
             </span>
           </span>
@@ -136,7 +140,7 @@ export default async function RunDetailPage({ params }: PageProps) {
                 overflow: "auto",
                 padding: `${SPACING.lg}px ${SPACING.lx}px`,
                 fontSize: FONT.xs,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
                 color: "var(--ct-text-body)",
                 lineHeight: LINE_HEIGHT.base,
                 margin: 0,
@@ -159,7 +163,7 @@ export default async function RunDetailPage({ params }: PageProps) {
                 overflow: "auto",
                 padding: `${SPACING.lg}px ${SPACING.lx}px`,
                 fontSize: FONT.xs,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
                 color: "var(--ct-text-body)",
                 lineHeight: LINE_HEIGHT.base,
                 margin: 0,
@@ -181,7 +185,7 @@ function Field({ label, value }: { label: string; value: string }) {
       <div
         style={{
           fontSize: FONT.base,
-          fontFamily: "monospace",
+          fontFamily: "var(--font-mono)",
           color: "var(--ct-text-primary)",
         }}
       >

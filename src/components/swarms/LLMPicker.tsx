@@ -143,5 +143,4 @@ const inputStyle: React.CSSProperties = {
   color: "var(--ct-text-primary)",
   fontSize: FONT.base,
   fontFamily: "inherit",
-  outline: "none",
 };

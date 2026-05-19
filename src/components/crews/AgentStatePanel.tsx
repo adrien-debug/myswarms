@@ -1,4 +1,3 @@
-import { SPACING, FONT, RADIUS, FONT_WEIGHT, LETTER_SPACING } from "@/lib/ui/tokens";
 import type { AgentRow, RunStats } from "@/lib/crews/chiefTypes";
 
 interface Props {
@@ -8,14 +7,24 @@ interface Props {
   runStatus: string | null;
 }
 
-function statusColor(status: AgentRow["status"]): string {
+function initialsColor(status: AgentRow["status"]): string {
   switch (status) {
     case "active":
-      return "var(--cos-accent)";
+      return "var(--ct-accent-strong)";
     case "idle":
-      return "var(--ct-text-muted)";
     case "pending":
       return "var(--ct-text-muted)";
+  }
+}
+
+function badgeClass(status: AgentRow["status"]): string {
+  switch (status) {
+    case "active":
+      return "status-badge nominal";
+    case "idle":
+      return "status-badge";
+    case "pending":
+      return "status-badge warn";
   }
 }
 
@@ -35,39 +44,26 @@ export function AgentStatePanel({
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: SPACING.lg,
+          gap: 8,
+          marginBottom: 16,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
-          {isRunning && (
-            <span
-              className="ct-pulse-dot"
-              style={{ display: "inline-block" }}
-            />
-          )}
-          <span
-            style={{
-              fontSize: FONT.xs,
-              fontWeight: FONT_WEIGHT.bold,
-              letterSpacing: LETTER_SPACING.wide,
-              textTransform: "uppercase",
-              color: "var(--ct-text-muted)",
-            }}
-          >
-            Agent State
-          </span>
-        </div>
+        {isRunning && (
+          <span className="ct-pulse-dot" style={{ display: "inline-block" }} />
+        )}
+        <span className="ct-card-title" style={{ marginBottom: 0 }}>
+          Agent State
+        </span>
         <span
           style={{
-            fontSize: FONT.xs,
-            fontWeight: FONT_WEIGHT.semibold,
-            letterSpacing: LETTER_SPACING.tight,
+            marginLeft: "auto",
+            fontSize: 10,
+            fontWeight: 600,
             color: "var(--ct-text-faint)",
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
-            borderRadius: RADIUS.sm,
-            padding: `2px ${SPACING.xxs}px`,
+            borderRadius: 4,
+            padding: "2px 6px",
           }}
         >
           N3 · safe
@@ -75,50 +71,48 @@ export function AgentStatePanel({
       </div>
 
       {/* Agent list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xxs }}>
+      <div className="activity-list" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {agentRows.map((agent) => (
           <div
             key={agent.name}
+            className="activity-item"
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: `${SPACING.xxs}px 0`,
+              padding: "4px 0",
               borderBottom: "1px solid var(--ct-border-soft)",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: SPACING.sm,
-                fontSize: FONT.base,
-                color: "var(--ct-text-body)",
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <span
                 style={{
-                  fontSize: FONT.xs,
-                  fontWeight: FONT_WEIGHT.bold,
-                  color: "var(--ct-text-strong)",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: initialsColor(agent.status),
                   background: "var(--ct-surface-2)",
                   border: "1px solid var(--ct-border)",
-                  borderRadius: RADIUS.sm,
-                  padding: `2px ${SPACING.xxs}px`,
-                  letterSpacing: LETTER_SPACING.wide,
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  letterSpacing: "0.08em",
+                  flexShrink: 0,
                 }}
               >
                 {agent.initials}
               </span>
-              <span>{agent.name}</span>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "var(--ct-text-body)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {agent.name}
+              </span>
             </div>
-            <span
-              style={{
-                fontSize: FONT.xs,
-                fontWeight: FONT_WEIGHT.semibold,
-                color: statusColor(agent.status),
-              }}
-            >
+            <span className={badgeClass(agent.status)}>
               {agent.statusLabel}
             </span>
           </div>
@@ -127,11 +121,12 @@ export function AgentStatePanel({
 
       {/* Footer */}
       <div
+        className="ct-card-body"
         style={{
-          marginTop: SPACING.lg,
+          marginTop: 16,
           display: "flex",
           justifyContent: "space-between",
-          fontSize: FONT.xs,
+          fontSize: 11,
           color: "var(--ct-text-faint)",
         }}
       >

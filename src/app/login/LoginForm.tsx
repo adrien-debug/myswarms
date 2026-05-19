@@ -100,16 +100,9 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
             border: "1px solid var(--ct-border-strong)",
             color: "var(--ct-text-primary)",
             fontSize: FONT.md,
-            outline: "none",
             fontFamily: "inherit",
             transition: "border-color 180ms",
           }}
-          onFocus={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-accent)")
-          }
-          onBlur={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-border-strong)")
-          }
         />
       </div>
 
@@ -144,16 +137,9 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
             border: "1px solid var(--ct-border-strong)",
             color: "var(--ct-text-primary)",
             fontSize: FONT.md,
-            outline: "none",
             fontFamily: "inherit",
             transition: "border-color 180ms",
           }}
-          onFocus={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-accent)")
-          }
-          onBlur={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-border-strong)")
-          }
         />
       </div>
 

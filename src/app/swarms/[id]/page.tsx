@@ -13,6 +13,8 @@ import type { SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 import type { CSSProperties } from "react";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
+import { PageTitle } from "@/components/ui/PageTitle";
+import { ErrorLayout } from "@/components/ui/ErrorLayout";
 
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
 type Trigger = (typeof ALLOWED_TRIGGERS)[number];
@@ -64,16 +66,10 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             <Chevron direction="left" />Swarms
           </Link>
         </div>
-        <h1 className="ct-title">Erreur</h1>
-        <div
-          className="ct-card"
-          style={{ borderColor: "var(--ct-border-accent)" }}
-        >
-          <div className="ct-card-title">Chargement échoué</div>
-          <p className="ct-card-body">
-            {err instanceof Error ? err.message : "Unknown error"}
-          </p>
-        </div>
+        <ErrorLayout
+          title="Swarm introuvable"
+          message={err instanceof Error ? err.message : "Unknown error"}
+        />
       </>
     );
   }
@@ -120,10 +116,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
               flexWrap: "wrap",
             }}
           >
-            <h1 className="ct-title">
-              {swarm.name}
-            </h1>
-            {/* F8 : badge ARCHIVÉ si swarm soft-deleted (is_active=false). */}
+            <PageTitle>{swarm.name}</PageTitle>
             {swarm.is_active === false ? (
               <span style={archivedBadgeStyle}>
                 Archivé
@@ -135,10 +128,8 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
-          {/* F8 : si archivé, on désactive Run/Edit (lien Edit → span disabled,
-              KickoffForm n'est plus rendu). L'utilisateur peut toujours
-              désarchiver via le bouton dédié (à venir) — pour l'instant
-              il doit recréer le swarm. */}
+          {/* Si archivé, on désactive Run/Edit. L'utilisateur peut toujours
+              voir l'historique des runs mais ne peut pas déclencher de nouveau run. */}
           {swarm.is_active === false ? (
             <>
               <span
@@ -275,7 +266,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                       href={`/swarms/${id}/runs/${r.id}`}
                       className="ct-link"
                       style={{
-                        fontFamily: "monospace",
+                        fontFamily: "var(--font-mono)",
                         fontSize: FONT.sm,
                       }}
                     >

@@ -1,19 +1,29 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
 
 type EngineStatus = "up" | "down" | "starting" | "unknown";
+
+const ENGINE_POLL_INTERVAL_MS = 5000;
+const ENGINE_START_POLL_DELAY_MS = 1000;
+const ENGINE_START_MAX_ATTEMPTS = 20;
 
 export function LaunchButton() {
   const [status, setStatus] = useState<EngineStatus>("unknown");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const checkStatus = useCallback(async () => {
     try {
       const res = await fetch("/api/system/status");
       const data = await res.json();
-      setStatus(data.engine === "up" ? "up" : "down");
+      if (data.engine === "up") {
+        setStatus("up");
+        setError(null);  // clear error sur recovery automatique
+      } else {
+        setStatus("down");
+      }
     } catch {
       setStatus("unknown");
     }
@@ -23,7 +33,7 @@ export function LaunchButton() {
     if (status === "up") return;
     // setTimeout 0 évite l'appel synchrone setState-in-effect
     const t = setTimeout(checkStatus, 0);
-    const interval = setInterval(checkStatus, 5000);
+    const interval = setInterval(checkStatus, ENGINE_POLL_INTERVAL_MS);
 
     const handleVisibility = () => {
       if (document.hidden) clearInterval(interval);
@@ -40,19 +50,31 @@ export function LaunchButton() {
   const handleLaunch = async () => {
     if (status === "up" || loading) return;
     setLoading(true);
+    setError(null);
     setStatus("starting");
     try {
-      await fetch("/api/system/start", { method: "POST" });
-      // Poll jusqu'à up
-      for (let i = 0; i < 20; i++) {
-        await new Promise(r => setTimeout(r, 1000));
+      const startRes = await fetch("/api/system/start", { method: "POST" });
+      if (!startRes.ok) {
+        throw new Error("Démarrage impossible — engine injoignable");
+      }
+      let started = false;
+      for (let i = 0; i < ENGINE_START_MAX_ATTEMPTS; i++) {
+        await new Promise(r => setTimeout(r, ENGINE_START_POLL_DELAY_MS));
         const res = await fetch("/api/system/status");
         const data = await res.json();
         if (data.engine === "up") {
           setStatus("up");
+          started = true;
           break;
         }
       }
+      if (!started) {
+        setError(`Engine non démarré après ${ENGINE_START_MAX_ATTEMPTS} s — vérifie les logs`);
+        setStatus("down");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Démarrage impossible — engine injoignable");
+      setStatus("down");
     } finally {
       setLoading(false);
       checkStatus();
@@ -67,27 +89,50 @@ export function LaunchButton() {
     "var(--ct-text-muted)";
 
   const label =
-    status === "up" ? "Engine actif" :
+    status === "up" ? "Engine ●" :
     status === "starting" ? "Starting…" :
     status === "down" ? "▶ Launch" :
     "Engine";
 
+  const isDisabled = status === "up" || status === "starting";
+  const titleText = error
+    ? error
+    : status === "up"
+      ? "Engine running"
+      : "Cliquer pour démarrer l'engine";
+
   return (
-    <button
-      type="button"
-      onClick={handleLaunch}
-      disabled={status === "up" || status === "starting"}
-      className="ct-seg-btn"
-      title={status === "up" ? "Engine running" : "Click to start engine"}
-      style={{
-        color: dotColor,
-        fontWeight: status === "down" ? FONT_WEIGHT.bold : undefined,
-        cursor: status === "up" ? "default" : "pointer",
-        gap: SPACING.xs,
-        minWidth: "var(--ct-launch-btn-min-w)",
-      }}
-    >
-      {label}
-    </button>
+    <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
+      <button
+        type="button"
+        onClick={handleLaunch}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        className="ct-seg-btn"
+        title={titleText}
+        aria-label={`Moteur CrewAI — ${label}${status === "down" ? ". Cliquer pour démarrer." : ""}`}
+        style={{
+          color: dotColor,
+          fontWeight: status === "down" ? FONT_WEIGHT.bold : undefined,
+          cursor: status === "up" ? "default" : "pointer",
+          gap: SPACING.xs,
+          minWidth: "var(--ct-launch-btn-min-w)",
+        }}
+      >
+        <span aria-live="polite">{label}</span>
+      </button>
+      {error && (
+        <span
+          role="alert"
+          aria-live="polite"
+          style={{
+            fontSize: FONT.xs,
+            color: "var(--ct-accent-strong)",
+          }}
+        >
+          {error}
+        </span>
+      )}
+    </div>
   );
 }

@@ -32,7 +32,9 @@ export default async function LoginPage({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--ct-bg-deep)",
+        background: "var(--ct-overlay-modal)",
+        backdropFilter: BLUR.modal,
+        WebkitBackdropFilter: BLUR.modal,
         padding: SPACING.xl,
       }}
     >

@@ -228,7 +228,7 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
     markers.push({
       leftPercent: nowPct,
       time: formatHHMM(now),
-      label: "▼ Tu es ici",
+      label: "Tu es ici",
       variant: "now",
     });
   markers.push({ leftPercent: 96, time: "18:30", label: "Brief soir", variant: "future" });

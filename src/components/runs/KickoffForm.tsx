@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { CtButton } from "@/components/ui/CtButton";
 
 export interface KickoffFormState {
   error?: string;
@@ -16,13 +17,9 @@ type KickoffAction = (
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="ct-seg-btn primary"
-    >
-      {pending ? "Running…" : "Run now"}
-    </button>
+    <CtButton variant="primary" type="submit" loading={pending} className="ct-seg-btn primary">
+      Run now
+    </CtButton>
   );
 }
 
@@ -35,6 +32,7 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
         <select
           name="trigger"
           defaultValue="on_demand"
+          aria-label="Type de déclenchement"
           style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit" }}
         >
           <option value="on_demand">On-demand</option>

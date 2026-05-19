@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FONT, SPACING } from "@/lib/ui/tokens";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 interface SwarmArchiveButtonProps {
   swarmId: string;
@@ -11,7 +12,7 @@ interface SwarmArchiveButtonProps {
 
 /**
  * Bouton "Archiver" (terme volontaire — pas "Supprimer" — pour réduire
- * l'angoisse). Appelle DELETE /api/swarms/[id] avec confirm() natif puis
+ * l'angoisse). Appelle DELETE /api/swarms/[id] via AlertDialog puis
  * redirige vers la liste.
  *
  * Côté backend, DELETE est un soft-archive logique en V1 (l'engine décide
@@ -24,14 +25,9 @@ export function SwarmArchiveButton({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleArchive() {
-    const ok = window.confirm(
-      `Archiver le swarm "${swarmName}" ?\n\n` +
-        "Le swarm ne sera plus déclenchable. Tu peux le réactiver plus tard.",
-    );
-    if (!ok) return;
-
+  async function handleConfirm() {
     setBusy(true);
     setError(null);
     try {
@@ -45,30 +41,46 @@ export function SwarmArchiveButton({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setBusy(false);
+      throw err;
     }
   }
 
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: SPACING.xs }}>
-      <button
-        type="button"
-        className="ct-seg-btn"
-        onClick={handleArchive}
-        disabled={busy}
-        title="Désactive le swarm — réversible"
-      >
-        {busy ? "Archivage…" : "Archiver"}
-      </button>
-      {error ? (
-        <span
-          style={{
-            fontSize: FONT.xs,
-            color: "var(--ct-accent-strong)",
-          }}
+    <>
+      <div style={{ display: "inline-flex", flexDirection: "column", gap: SPACING.xs }}>
+        <button
+          type="button"
+          className="ct-seg-btn"
+          onClick={() => setConfirmOpen(true)}
+          disabled={busy}
+          aria-disabled={busy}
+          title="Désactive le swarm — réversible"
         >
-          {error}
-        </span>
-      ) : null}
-    </div>
+          {busy ? "Archivage…" : "Archiver"}
+        </button>
+        {error ? (
+          <span
+            style={{
+              fontSize: FONT.xs,
+              color: "var(--ct-accent-strong)",
+            }}
+          >
+            {error}
+          </span>
+        ) : null}
+      </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        title={`Archiver le swarm "${swarmName}" ?`}
+        description="Le swarm ne sera plus déclenchable. Tu pourras le réactiver plus tard."
+        confirmLabel="Archiver"
+        cancelLabel="Annuler"
+        variant="destructive"
+        busy={busy}
+      />
+    </>
   );
 }

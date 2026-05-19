@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { BottomBarSwarmActions } from "@/components/swarms/BottomBarSwarmActions";
 import { LaunchButton } from "@/components/cockpit/LaunchButton";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
+const REFRESH_FEEDBACK_MS = 600;
 
 export function AppBottomBar() {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
 
   const isHome = pathname === "/";
   const isSwarmsArea = pathname.startsWith("/swarms");
@@ -31,6 +34,12 @@ export function AppBottomBar() {
         : isToolsArea
           ? "Tools"
           : "Cockpit";
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    router.refresh();
+    setTimeout(() => setRefreshing(false), REFRESH_FEEDBACK_MS);
+  };
 
   return (
     <nav className="ct-app-nav" role="navigation" aria-label="Navigation principale">
@@ -72,9 +81,11 @@ export function AppBottomBar() {
           <button
             type="button"
             className="ct-seg-btn"
-            onClick={() => router.refresh()}
+            onClick={handleRefresh}
+            disabled={refreshing}
+            aria-disabled={refreshing}
           >
-            Refresh
+            {refreshing ? "Refresh…" : "Refresh"}
           </button>
         </div>
 
@@ -85,11 +96,11 @@ export function AppBottomBar() {
               <Link href={`${pathname}/edit`} className="ct-seg-btn">
                 Edit
               </Link>
-              <span className="ct-seg-btn active" role="button" aria-disabled="true">View</span>
+              <span className="ct-seg-btn active" role="button" aria-disabled="true" tabIndex={0}>View</span>
             </>
           ) : isSwarmEdit ? (
             <>
-              <span className="ct-seg-btn active" role="button" aria-disabled="true">Edit</span>
+              <span className="ct-seg-btn active" role="button" aria-disabled="true" tabIndex={0}>Edit</span>
               <Link
                 href={pathname.replace(/\/edit$/, "")}
                 className="ct-seg-btn"
@@ -98,7 +109,7 @@ export function AppBottomBar() {
               </Link>
             </>
           ) : isSwarmNew ? (
-            <span className="ct-seg-btn primary" role="button" aria-disabled="true">Create</span>
+            <span className="ct-seg-btn primary" role="button" aria-disabled="true" tabIndex={0}>Create</span>
           ) : (
             <Link href="/swarms/new" className="ct-seg-btn primary">
               Build

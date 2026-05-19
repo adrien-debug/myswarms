@@ -8,11 +8,11 @@
 :root {
   /* ── Hearst Hive accent override (#3FA7E0) ── */
   --ct-bg-deep: #030d14;
-  --ct-accent-maroon: #1a4a6a;
   --ct-accent: #3FA7E0;
-  --ct-accent-strong: #60bae8;
-  --ct-accent-soft: rgba(63, 167, 224, 0.18);
-  --ct-border-accent: rgba(63, 167, 224, 0.55);
+  --ct-accent-strong: color-mix(in srgb, var(--ct-accent) 78%, #fff);
+  --ct-accent-maroon: color-mix(in srgb, var(--ct-accent) 70%, #1A050B);
+  --ct-accent-soft: color-mix(in srgb, var(--ct-accent) 18%, transparent);
+  --ct-border-accent: color-mix(in srgb, var(--ct-accent) 55%, transparent);
 
   --ct-rail-left: 88px;
   --ct-rail-right: 420px;
@@ -32,10 +32,13 @@
   --ct-border: rgba(255,255,255,0.10);
   --ct-border-strong: rgba(255,255,255,0.16);
 
+  --ct-shadow-highlight: rgba(255,255,255,0.18);
+  --ct-shadow-inset: rgba(0,0,0,0.45);
+  --ct-shadow-ambient: rgba(0,0,0,0.65);
   --ct-shadow-depth:
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.45),
-    0 20px 60px -24px rgba(0,0,0,0.65);
+    inset 0 1px 0 var(--ct-shadow-highlight),
+    inset 0 -1px 0 var(--ct-shadow-inset),
+    0 20px 60px -24px var(--ct-shadow-ambient);
 
   --ct-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ct-dur-base: 180ms;
@@ -51,7 +54,6 @@
   --ct-launch-btn-min-w: 90px;      /* largeur minimale du bouton LaunchButton */
 
   /* ── Alert error tokens ── */
-  /* Couleur d'erreur canonique (origine a2d69ba). Consolidation P1 audit : page.tsx adopte ce token partagé (était inline crimson) — remédiation voulue, pas une régression. */
   --ct-alert-error-border: rgba(239, 68, 68, 0.25);
   --ct-alert-error-bg: rgba(239, 68, 68, 0.10);
   --ct-alert-error-text: #fca5a5;
@@ -102,6 +104,7 @@
 
   /* ── Shadows complémentaires ── */
   --ct-shadow-now-glow: 0 0 8px 2px rgba(245, 158, 11, 0.5);
+  --cos-shadow-pulse-glow: 0 0 8px var(--cos-accent);
 
   /* ── Z-index officiels ── */
   --ct-z-base: 0;
@@ -119,6 +122,18 @@
   --ct-radius-xl: 16px;
   --ct-radius-nav: 10px;
   --ct-radius-pill: 9999px;
+
+  /* ── Spacing scale (aligné sur SPACING TS dans src/lib/ui/tokens.ts) ── */
+  --ct-space-xs: 4px;
+  --ct-space-sm: 8px;
+  --ct-space-md: 12px;
+  --ct-space-lg: 16px;
+  --ct-space-lx: 20px;
+  --ct-space-xl: 24px;
+  --ct-space-xxl: 32px;
+
+  /* ── Typography ── */
+  --font-mono: var(--font-geist-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
 
   /* ── Sizes complémentaires ── */
   --ct-logo-size: 40px;
@@ -149,13 +164,13 @@ html, body {
 .ct-ambient-deep {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--ct-z-base);
   background: var(--ct-bg-deep);
 }
 .ct-ambient-glow {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--ct-z-base);
   pointer-events: none;
   opacity: 0.6;
   background: radial-gradient(ellipse 80% 60% at 50% 30%, var(--ct-accent-maroon) 0%, transparent 70%);
@@ -164,7 +179,7 @@ html, body {
 /* ── LAYOUT ── */
 .ct-panels-row {
   position: relative;
-  z-index: 10;
+  z-index: var(--ct-z-panel);
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -176,7 +191,7 @@ html, body {
 /* ── RAIL GAUCHE ── */
 .ct-rail-left {
   position: relative;
-  z-index: 20;
+  z-index: var(--ct-z-rail);
   flex-shrink: 0;
   width: var(--ct-rail-left);
   height: 100%;
@@ -192,7 +207,7 @@ html, body {
 .ct-logo-slot {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--ct-radius-nav);
   background: var(--ct-surface-3);
   display: flex;
   align-items: center;
@@ -243,13 +258,14 @@ html, body {
 .ct-app-nav {
   position: fixed;
   bottom: 24px;
-  left: 50%;
+  /* Centré sur la section centrale (entre rail gauche et rail droit) */
+  left: calc(var(--ct-rail-left) + (100vw - var(--ct-rail-left) - var(--ct-rail-right)) / 2);
   transform: translateX(-50%);
   z-index: var(--ct-z-bottom-bar);
   width: max-content;
-  max-width: calc(100% - 48px);
+  max-width: calc(100vw - var(--ct-rail-left) - var(--ct-rail-right) - 48px);
   padding: 12px 28px;
-  border-radius: 9999px;
+  border-radius: var(--ct-radius-pill);
   background: var(--ct-surface-2);
   border: 1px solid var(--ct-border-strong);
   backdrop-filter: var(--ct-blur-panel);
@@ -261,11 +277,12 @@ html, body {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--ct-space-lx);
 }
 
-/* Masque la ProductBottomBar du package (redondante : 1 seul produit Hive) */
-.ct-root > .ct-bottom-bar { display: none; }
+/* Masque les bottom bars du package (redondantes — AppBottomBar custom les remplace, 1 seul produit Hive) */
+.ct-root .ct-bottom-bar,
+.ct-root .ct-hub-bar { display: none; }
 
 /* ── BOTTOM BAR ── */
 .ct-bottom-bar {
@@ -273,11 +290,11 @@ html, body {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 30;
+  z-index: var(--ct-z-bottom-bar);
   width: max-content;
   max-width: calc(100% - 48px);
   padding: 12px 28px;
-  border-radius: 9999px;
+  border-radius: var(--ct-radius-pill);
   background: var(--ct-surface-2);
   border: 1px solid var(--ct-border-strong);
   backdrop-filter: blur(60px) saturate(110%) brightness(105%);
@@ -289,7 +306,7 @@ html, body {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--ct-space-lx);
 }
 .ct-bottom-label {
   font-size: 12px;
@@ -313,7 +330,7 @@ html, body {
   padding: 4px;
   background: var(--ct-overlay-dark);
   box-shadow: inset 0 0 0 1px var(--ct-border);
-  border-radius: 9999px;
+  border-radius: var(--ct-radius-pill);
 }
 .ct-seg-btn {
   appearance: none;
@@ -324,13 +341,13 @@ html, body {
   font-size: 12px;
   font-weight: 500;
   font-family: inherit;
-  border-radius: 9999px;
+  border-radius: var(--ct-radius-pill);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ct-space-sm);
   transition: background var(--ct-dur-base) var(--ct-ease), color var(--ct-dur-base) var(--ct-ease);
 }
 .ct-seg-btn:hover:not(:disabled) {
@@ -361,10 +378,23 @@ html, body {
   cursor: not-allowed;
 }
 
+/* ── LaunchButton : icône play (▶) tokenisée en pseudo-élément ── */
+.ct-launch-btn--down::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid currentColor;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 /* ── RAIL DROIT ── */
 .ct-rail-right {
   position: relative;
-  z-index: 20;
+  z-index: var(--ct-z-rail);
   flex-shrink: 0;
   width: var(--ct-rail-right);
   height: 100%;
@@ -430,6 +460,9 @@ html, body {
   letter-spacing: -0.02em;
   margin-bottom: 8px;
 }
+.ct-title--mono {
+  font-family: var(--font-mono);
+}
 .ct-sub {
   font-size: 13px;
   color: var(--ct-text-muted);
@@ -438,17 +471,17 @@ html, body {
 .ct-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: var(--ct-space-lg);
   margin-bottom: 24px;
 }
 .ct-kpi-card {
   background: var(--ct-surface-1);
   border: 1px solid var(--ct-border);
-  border-radius: 12px;
+  border-radius: var(--ct-radius-lg);
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ct-space-sm);
   box-shadow: var(--ct-shadow-depth);
 }
 .ct-kpi-card.accent {
@@ -475,7 +508,7 @@ html, body {
 .ct-card {
   background: var(--ct-surface-1);
   border: 1px solid var(--ct-border);
-  border-radius: 12px;
+  border-radius: var(--ct-radius-lg);
   padding: 20px 24px;
   margin-bottom: 16px;
   box-shadow: var(--ct-shadow-depth);
@@ -532,7 +565,7 @@ html, body {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--ct-radius-nav);
   color: var(--ct-text-muted);
   text-decoration: none;
   transition: background var(--ct-dur-base) var(--ct-ease), color var(--ct-dur-base) var(--ct-ease);
@@ -555,7 +588,8 @@ html, body {
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: none;
+  outline: 2px solid var(--ct-accent-strong);
+  outline-offset: 2px;
   border-color: var(--ct-accent-strong) !important;
   box-shadow: 0 0 0 2px var(--ct-accent-soft);
 }
@@ -593,8 +627,8 @@ select:focus-visible {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--cos-accent, #7cf2c4);
-  box-shadow: 0 0 8px var(--cos-accent, #7cf2c4);
+  background: var(--cos-accent);
+  box-shadow: var(--cos-shadow-pulse-glow);
   display: inline-block;
   animation: ct-pulse 2s infinite;
 }

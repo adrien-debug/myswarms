@@ -4,7 +4,7 @@ import { useState } from "react";
 import { SwarmTaskForm } from "./SwarmTaskForm";
 import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { Chevron } from "@/components/ui/Chevron";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 /**
  * G8 fix : tab "Tasks" extrait de SwarmBuilder.
@@ -28,6 +28,8 @@ export function BuilderTasksTab({
 }: BuilderTasksTabProps) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  // Tâche en attente de confirmation de suppression.
+  const [pendingRemoveIdx, setPendingRemoveIdx] = useState<number | null>(null);
 
   const handleAdd = (task: TaskInput) => {
     onAdd(task);
@@ -115,13 +117,22 @@ export function BuilderTasksTab({
                   gap: SPACING.md,
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: FONT_WEIGHT.semibold }}>{t.name}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontWeight: FONT_WEIGHT.semibold,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t.name}
+                  </div>
                   <div
                     style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}
                   >
                     {assignedAgent
-                      ? <><Chevron direction="right" />{assignedAgent.name}</>
+                      ? `→ ${assignedAgent.name}`
                       : "agent non assigné"}
                   </div>
                 </div>
@@ -136,11 +147,7 @@ export function BuilderTasksTab({
                   <button
                     type="button"
                     className="ct-seg-btn"
-                    onClick={() => {
-                      if (window.confirm(`Supprimer la tâche « ${t.name} » ?`)) {
-                        onRemove(idx);
-                      }
-                    }}
+                    onClick={() => setPendingRemoveIdx(idx)}
                   >
                     Supprimer
                   </button>
@@ -156,6 +163,38 @@ export function BuilderTasksTab({
           Aucune tâche. Définis ce que doit faire chaque agent.
         </p>
       ) : null}
+
+      {/* AlertDialog suppression tâche */}
+      {pendingRemoveIdx !== null && tasks[pendingRemoveIdx] ? (() => {
+        const t = tasks[pendingRemoveIdx];
+        const dependantCount = tasks.filter(
+          (other) => other.depends_on_task_id === t.id,
+        ).length;
+        const impactMsg =
+          dependantCount > 0
+            ? `${dependantCount} tâche${dependantCount > 1 ? "s" : ""} dépend${dependantCount > 1 ? "ent" : ""} de celle-ci — ${dependantCount > 1 ? "leurs dépendances seront" : "sa dépendance sera"} brisée${dependantCount > 1 ? "s" : ""}.`
+            : null;
+        return (
+          <AlertDialog
+            open
+            onClose={() => setPendingRemoveIdx(null)}
+            onConfirm={() => {
+              onRemove(pendingRemoveIdx);
+              setPendingRemoveIdx(null);
+            }}
+            title={`Supprimer la tâche "${t.name}" ?`}
+            description={
+              impactMsg
+                ? undefined
+                : "Cette action est irréversible dans le builder."
+            }
+            impact={impactMsg ? <span>{impactMsg}</span> : undefined}
+            confirmLabel="Supprimer"
+            cancelLabel="Annuler"
+            variant="destructive"
+          />
+        );
+      })() : null}
     </div>
   );
 }

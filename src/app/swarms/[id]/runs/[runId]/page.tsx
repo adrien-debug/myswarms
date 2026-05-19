@@ -19,6 +19,8 @@ import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
+import { PageTitle } from "@/components/ui/PageTitle";
+import { ErrorLayout } from "@/components/ui/ErrorLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -46,20 +48,15 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             <Chevron direction="left" />Swarm
           </Link>
         </div>
-        <h1 className="ct-title">Erreur</h1>
-        <div
-          className="ct-card ct-card--accent"
-        >
-          <div className="ct-card-title">Chargement échoué</div>
-          <p className="ct-card-body">
-            {err instanceof Error ? err.message : "Unknown error"}
-          </p>
-        </div>
+        <ErrorLayout
+          title="Run introuvable"
+          message={err instanceof Error ? err.message : "Unknown error"}
+        />
       </>
     );
   }
 
-  // C3 fix : inclure `paused_hitl` pour que le polling reprenne automatiquement
+  // Inclure `paused_hitl` pour que le polling reprenne automatiquement
   // à la sortie de la pause Human-in-the-Loop (sinon l'UI reste figée).
   const isRunning = (["running", "pending", "paused_hitl"] as const).includes(
     run.status as "running" | "pending" | "paused_hitl",
@@ -86,12 +83,9 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         }}
       >
         <div>
-          <h1
-            className="ct-title"
-            style={{ fontFamily: "monospace" }} // monospace runId display
-          >
+          <PageTitle variant="mono">
             Run {runId.slice(0, 8)}…
-          </h1>
+          </PageTitle>
           <div
             style={{
               display: "flex",
@@ -169,7 +163,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           <pre
             style={{
               fontSize: FONT.sm,
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               color: "var(--ct-text-primary)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
@@ -191,7 +185,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
               padding: SPACING.md,
               fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               overflow: "auto",
@@ -232,7 +226,7 @@ function Field({
         style={{
           fontSize: FONT.base,
           color: "var(--ct-text-primary)",
-          fontFamily: mono ? "monospace" : "inherit",
+          fontFamily: mono ? "var(--font-mono)" : "inherit",
           wordBreak: "break-all",
         }}
       >
