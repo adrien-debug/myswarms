@@ -67,7 +67,7 @@ export function LaunchButton() {
     "var(--ct-text-muted)";
 
   const label =
-    status === "up" ? "Engine ●" :
+    status === "up" ? "Engine actif" :
     status === "starting" ? "Starting…" :
     status === "down" ? "▶ Launch" :
     "Engine";

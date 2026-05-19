@@ -33,9 +33,9 @@ export function AppBottomBar() {
           : "Cockpit";
 
   return (
-    <div className="ct-app-nav">
+    <nav className="ct-app-nav" role="navigation" aria-label="Navigation principale">
       <div className="ct-app-nav-inner">
-        <span className="ct-bottom-label">● {sectionLabel}</span>
+        <span className="ct-bottom-label ct-bottom-label--with-dot">{sectionLabel}</span>
 
         <div className="ct-seg-track">
           <Link href="/" className={`ct-seg-btn ${isHome ? "active" : ""}`}>
@@ -85,11 +85,11 @@ export function AppBottomBar() {
               <Link href={`${pathname}/edit`} className="ct-seg-btn">
                 Edit
               </Link>
-              <span className="ct-seg-btn active">View</span>
+              <span className="ct-seg-btn active" role="button" aria-disabled="true">View</span>
             </>
           ) : isSwarmEdit ? (
             <>
-              <span className="ct-seg-btn active">Edit</span>
+              <span className="ct-seg-btn active" role="button" aria-disabled="true">Edit</span>
               <Link
                 href={pathname.replace(/\/edit$/, "")}
                 className="ct-seg-btn"
@@ -98,7 +98,7 @@ export function AppBottomBar() {
               </Link>
             </>
           ) : isSwarmNew ? (
-            <span className="ct-seg-btn primary">Create</span>
+            <span className="ct-seg-btn primary" role="button" aria-disabled="true">Create</span>
           ) : (
             <Link href="/swarms/new" className="ct-seg-btn primary">
               Build
@@ -106,6 +106,6 @@ export function AppBottomBar() {
           )}
         </div>
       </div>
-    </div>
+    </nav>
   );
 }
