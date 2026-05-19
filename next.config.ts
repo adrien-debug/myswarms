@@ -9,12 +9,10 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname),
   },
   async headers() {
-    // En dev local, on autorise l'embed dans le hub Hearst (localhost:4200/4201)
-    // pour que les <webview> Electron puissent charger Hive.
-    // En production, frame-ancestors reste strict ('none').
-    const frameAncestors = isDev
-      ? "frame-ancestors 'self' http://localhost:4200 http://localhost:4201"
-      : "frame-ancestors 'none'";
+    // Autorise toujours l'embed depuis le hub Hearst Cockpit (localhost:4200/4201).
+    // Ces origines locales ne peuvent jamais être servies en prod → aucun risque.
+    const frameAncestors =
+      "frame-ancestors 'self' http://localhost:4200 http://localhost:4201";
 
     return [
       {
@@ -37,11 +35,8 @@ const nextConfig: NextConfig = {
               .filter(Boolean)
               .join("; "),
           },
-          {
-            key: "X-Frame-Options",
-            // ALLOWALL en dev (hub embed), DENY en prod
-            value: isDev ? "ALLOWALL" : "DENY",
-          },
+          // Pas de X-Frame-Options : il bloque toute embed cross-origin et ne
+          // supporte pas de whitelist. Le CSP frame-ancestors ci-dessus suffit.
         ],
       },
     ];
