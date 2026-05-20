@@ -61,7 +61,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
       {/* Items */}
       {items.length === 0 ? (
         <p className="ct-placeholder" style={{ textAlign: "center", padding: "24px 0" }}>
-          Aucun diff · Lance un run pour voir l&apos;activité des agents
+          No diff · Start a run to see agent activity
         </p>
       ) : (
         <div className="activity-list" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -120,7 +120,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
           fontStyle: "italic",
         }}
       >
-        Tap une ligne pour corriger : entraîne Memory
+        Tap a row to correct: trains Memory
       </div>
     </div>
   );

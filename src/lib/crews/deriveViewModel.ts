@@ -50,7 +50,7 @@ function safeDate(iso: string): Date | null {
 }
 
 function formatHHMM(date: Date): string {
-  return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
 function addMinutes(base: Date, min: number): Date {
@@ -66,7 +66,7 @@ function extractP0(parsed: MockResult | ProductionResult | null): P0Item | null 
   if (isProductionResult(parsed)) {
     const vip = parsed.vip_contacts_identified?.[0];
     const hint = parsed.preference_hints?.[0];
-    if (vip) return { from: vip.name, subject: vip.context ?? hint ?? "Action requise", action: hint ?? "Traiter ce contact" };
+    if (vip) return { from: vip.name, subject: vip.context ?? hint ?? "Action required", action: hint ?? "Process this contact" };
   }
   return null;
 }
@@ -97,7 +97,7 @@ function deriveAgentRows(run: RunSummary | null, now: Date): AgentRow[] {
       return {
         ...def,
         status: "idle" as const,
-        statusLabel: run.status === "failed" ? "Erreur" : "Terminé",
+        statusLabel: run.status === "failed" ? "Error" : "Done",
       };
     }
     if (run.status === "running") {
@@ -113,10 +113,10 @@ function deriveAgentRows(run: RunSummary | null, now: Date): AgentRow[] {
           statusLabel: `Coordinating · ${Math.round(elapsed / 1000)}s`,
         };
       if (idx === estimatedStep)
-        return { ...def, status: "active" as const, statusLabel: "En cours…" };
+        return { ...def, status: "active" as const, statusLabel: "Running…" };
       if (idx < estimatedStep)
-        return { ...def, status: "idle" as const, statusLabel: "Terminé" };
-      return { ...def, status: "idle" as const, statusLabel: "En attente" };
+        return { ...def, status: "idle" as const, statusLabel: "Done" };
+      return { ...def, status: "idle" as const, statusLabel: "Waiting" };
     }
     return { ...def, status: "idle" as const, statusLabel: "—" };
   });
@@ -136,48 +136,48 @@ function deriveDiffItems(
       items.push({
         time: formatHHMM(addMinutes(base, 0)),
         agentName: "Inbox Collector",
-        text: `a aspiré **${s.total} items** (Gmail · Slack · Telegram)`,
+        text: `pulled **${s.total} items** (Gmail · Slack · Telegram)`,
       });
     if (s)
       items.push({
         time: formatHHMM(addMinutes(base, 2)),
         agentName: "Classifier",
-        text: `a flaggé **${s.p0} P0** (${s.p1} P1)`,
+        text: `flagged **${s.p0} P0** (${s.p1} P1)`,
       });
     if (parsed.drafts_prepared)
       items.push({
         time: formatHHMM(addMinutes(base, 6)),
         agentName: "Draft Writer",
-        text: `a préparé **${parsed.drafts_prepared} brouillon(s)**`,
+        text: `prepared **${parsed.drafts_prepared} draft(s)**`,
       });
     if (parsed.actions_automated)
       items.push({
         time: formatHHMM(addMinutes(base, 8)),
         agentName: "Automation",
-        text: `a exécuté **${parsed.actions_automated} action(s)**`,
+        text: `executed **${parsed.actions_automated} action(s)**`,
       });
     items.push({
       time: formatHHMM(addMinutes(base, 10)),
       agentName: "Memory",
-      text: "a mis à jour les VIPs et préférences",
+      text: "updated VIPs and preferences",
     });
   } else if (isProductionResult(parsed)) {
     const vips = parsed.vip_contacts_identified?.length ?? 0;
     items.push({
       time: formatHHMM(addMinutes(base, 0)),
       agentName: "Inbox Collector",
-      text: "a collecté les messages",
+      text: "collected messages",
     });
     items.push({
       time: formatHHMM(addMinutes(base, 2)),
       agentName: "Classifier",
-      text: "a classifié les messages",
+      text: "classified messages",
     });
     if (vips > 0)
       items.push({
         time: formatHHMM(addMinutes(base, 8)),
         agentName: "Memory",
-        text: `a identifié **${vips} contact(s) VIP**`,
+        text: `identified **${vips} VIP contact(s)**`,
       });
   }
   return items;
@@ -194,7 +194,7 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
   const totalSpan = today1830.getTime() - startMs;
   if (totalSpan <= 0) {
     // Guard : évite NaN dans leftPercent si le run démarre à 18:30 ou après
-    return [{ leftPercent: 96, time: "18:30", label: "Brief soir", variant: "future" }];
+    return [{ leftPercent: 96, time: "18:30", label: "Evening brief", variant: "future" }];
   }
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
   const pct = (ms: number) => clamp(((ms - startMs) / totalSpan) * 100);
@@ -205,7 +205,7 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
     {
       leftPercent: Math.max(2, pct(startMs)),
       time: formatHHMM(new Date(run.started_at)),
-      label: "Brief matin",
+      label: "Morning brief",
       variant: "done",
     },
   ];
@@ -213,14 +213,14 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
     markers.push({
       leftPercent: pct(startMs + 2 * 60_000),
       time: formatHHMM(new Date(startMs + 2 * 60_000)),
-      label: "P0 détecté",
+      label: "P0 detected",
       variant: run.status === "completed" ? "done" : "now",
     });
   if (hasDrafts)
     markers.push({
       leftPercent: pct(startMs + 6 * 60_000),
       time: formatHHMM(new Date(startMs + 6 * 60_000)),
-      label: "Brouillon prêt",
+      label: "Draft ready",
       variant: "done",
     });
   const nowPct = pct(now.getTime());
@@ -228,10 +228,10 @@ function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
     markers.push({
       leftPercent: nowPct,
       time: formatHHMM(now),
-      label: "Tu es ici",
+      label: "You are here",
       variant: "now",
     });
-  markers.push({ leftPercent: 96, time: "18:30", label: "Brief soir", variant: "future" });
+  markers.push({ leftPercent: 96, time: "18:30", label: "Evening brief", variant: "future" });
   return markers;
 }
 
@@ -253,10 +253,10 @@ function deriveAgentRowsFromSteps(steps: RunStep[]): AgentRow[] {
       return {
         ...def,
         status: "idle" as const,
-        statusLabel: `Terminé · ${time ? formatHHMM(time) : "—"}`,
+        statusLabel: `Done · ${time ? formatHHMM(time) : "—"}`,
       };
     }
-    return { ...def, status: "active" as const, statusLabel: "En cours…" };
+    return { ...def, status: "active" as const, statusLabel: "Running…" };
   });
 }
 
@@ -268,7 +268,7 @@ function deriveDiffItemsFromSteps(steps: RunStep[]): DiffItem[] {
       ? rawText.length > DIFF_TEXT_MAX_CHARS
         ? rawText.slice(0, DIFF_TEXT_MAX_CHARS) + "…"
         : rawText
-      : "a terminé";
+      : "done";
     return {
       time: time ? formatHHMM(time) : "—",
       agentName: step.agent_name,
@@ -305,8 +305,8 @@ function deriveTimelineFromSteps(steps: RunStep[], now: Date): TimelineMarker[] 
     // else : tous les leftPercent restent à 0 (marqueurs visibles au bord gauche, pas NaN)
   }
 
-  // Ajouter "Brief soir" 18:30 futur
-  markers.push({ leftPercent: 96, time: "18:30", label: "Brief soir", variant: "future" });
+  // Add "Evening brief" marker at 18:30
+  markers.push({ leftPercent: 96, time: "18:30", label: "Evening brief", variant: "future" });
   return markers;
 }
 
@@ -347,7 +347,7 @@ export function deriveViewModel(
     }
   }
   if (draftText === null && isMockResult(parsed) && (parsed.drafts_prepared ?? 0) > 0) {
-    draftText = `[Brouillon généré — ${parsed.drafts_prepared} réponse(s) préparée(s). Cliquer Modifier pour accéder au brouillon complet.]`;
+    draftText = `[Draft generated — ${parsed.drafts_prepared} reply(ies) prepared. Click Edit to access the full draft.]`;
   }
 
   if (steps.length > 0) {

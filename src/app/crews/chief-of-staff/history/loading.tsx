@@ -82,7 +82,7 @@ export default function HistoryLoading() {
       </section>
 
       <p className="ct-sub" style={{ marginTop: SPACING.md }}>
-        Chargement…
+        Loading…
       </p>
     </>
   );

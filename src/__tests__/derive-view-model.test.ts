@@ -102,14 +102,14 @@ describe("deriveViewModel()", () => {
   });
 
   // 2. Completed run + no steps → synthetic path from mock result
-  it("completed run + no steps → P0 from top_items, draftText placeholder, agents 'Terminé', timeline has Brief matin + Brief soir", () => {
+  it("completed run + no steps → P0 from top_items, draftText placeholder, agents 'Done', timeline has Morning brief + Evening brief", () => {
     const vm = deriveViewModel(mockRun, [], [], NOW);
 
     expect(vm.p0Item).not.toBeNull();
     expect(vm.p0Item?.from).toBe("client@example.com");
     expect(vm.p0Item?.subject).toBe("Contract review needed today");
 
-    expect(vm.draftText).toContain("Brouillon");
+    expect(vm.draftText).toContain("Draft");
 
     expect(vm.runStats).toEqual({ total: 5, p0: 1, p1: 2 });
 
@@ -117,13 +117,13 @@ describe("deriveViewModel()", () => {
       if (agent.name === "Daily Planner") {
         expect(agent.statusLabel).toBe("V2 pending");
       } else {
-        expect(agent.statusLabel).toBe("Terminé");
+        expect(agent.statusLabel).toBe("Done");
       }
     }
 
     const labels = vm.timelineMarkers.map((m) => m.label);
-    expect(labels).toContain("Brief matin");
-    expect(labels).toContain("Brief soir");
+    expect(labels).toContain("Morning brief");
+    expect(labels).toContain("Evening brief");
   });
 
   it("completed run + steps (no draft step) → agentRows from steps, diffItems from steps (output_text truncated to 100 chars), p0Item from mock result", () => {
@@ -151,7 +151,7 @@ describe("deriveViewModel()", () => {
 
     const chiefRow = vm.agentRows.find((r) => r.name === "Chief of Staff");
     expect(chiefRow?.status).toBe("idle");
-    expect(chiefRow?.statusLabel).toMatch(/Terminé/);
+    expect(chiefRow?.statusLabel).toMatch(/Done/);
   });
 
   it("completed run + steps + draft step → draftText from Draft Writer step (truncated to 600 chars if long)", () => {
@@ -263,14 +263,14 @@ describe("deriveViewModel()", () => {
 
   // ── Edge cases ────────────────────────────────────────────────────────────
 
-  it("step with empty output_text → diffItem text falls back to 'a terminé'", () => {
+  it("step with empty output_text → diffItem text falls back to 'done'", () => {
     const steps: RunStep[] = [
       { ...makeStep("Classifier", ""), output_text: "" },
     ];
 
     const vm = deriveViewModel(mockRun, steps, [], NOW);
     const item = vm.diffItems[0];
-    expect(item.text).toBe("a terminé");
+    expect(item.text).toBe("done");
   });
 
   it("step without finished_at → agent row status is 'active'", () => {
@@ -289,10 +289,10 @@ describe("deriveViewModel()", () => {
     const vm = deriveViewModel(mockRun, steps, [], NOW);
     const row = vm.agentRows.find((r) => r.name === "Inbox Collector");
     expect(row?.status).toBe("active");
-    expect(row?.statusLabel).toBe("En cours…");
+    expect(row?.statusLabel).toBe("Running…");
   });
 
-  it("failed run (no steps) → agents statusLabel is 'Erreur'", () => {
+  it("failed run (no steps) → agents statusLabel is 'Error'", () => {
     const failedRun: RunSummary = {
       ...mockRun,
       status: "failed",
@@ -303,7 +303,7 @@ describe("deriveViewModel()", () => {
 
     for (const agent of vm.agentRows) {
       if (agent.name === "Daily Planner") continue;
-      expect(agent.statusLabel).toBe("Erreur");
+      expect(agent.statusLabel).toBe("Error");
     }
   });
 
@@ -359,14 +359,14 @@ describe("deriveViewModel()", () => {
     });
   });
 
-  it("timeline from steps always includes 'Brief soir' marker at 96%", () => {
+  it("timeline from steps always includes 'Evening brief' marker at 96%", () => {
     const steps: RunStep[] = [
       makeStep("Inbox Collector", "done"),
     ];
 
     const vm = deriveViewModel(mockRun, steps, [], NOW);
 
-    const soir = vm.timelineMarkers.find((m) => m.label === "Brief soir");
+    const soir = vm.timelineMarkers.find((m) => m.label === "Evening brief");
     expect(soir).toBeDefined();
     expect(soir?.leftPercent).toBe(96);
     expect(soir?.variant).toBe("future");

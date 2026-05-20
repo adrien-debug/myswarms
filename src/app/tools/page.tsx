@@ -18,7 +18,7 @@ async function loadTools(): Promise<{ tools: Tool[]; engineError: string | null 
     if (err instanceof SwarmEngineError && err.status === 404) {
       return { tools: [], engineError: null };
     }
-    const message = err instanceof Error ? err.message : "Erreur inconnue";
+    const message = err instanceof Error ? err.message : "Unknown error";
     return { tools: [], engineError: message };
   }
 }
@@ -26,7 +26,7 @@ async function loadTools(): Promise<{ tools: Tool[]; engineError: string | null 
 export default async function ToolsPage() {
   const { tools, engineError } = await loadTools();
   const grouped = tools.reduce<Record<string, Tool[]>>((acc, tool) => {
-    const cat = tool.category ?? "Autres";
+    const cat = tool.category ?? "Other";
     (acc[cat] ??= []).push(tool);
     return acc;
   }, {});
@@ -36,11 +36,10 @@ export default async function ToolsPage() {
 
   return (
     <>
-      <span className="ct-eyebrow">Catalogue</span>
+      <span className="ct-eyebrow">Catalog</span>
       <h1 className="ct-title">Tools</h1>
       <p className="ct-sub">
-        {tools.length} outil{tools.length > 1 ? "s" : ""} disponible
-        {tools.length > 1 ? "s" : ""} pour vos agents.
+        {tools.length} tool{tools.length > 1 ? "s" : ""} available for your agents.
       </p>
 
       {engineError ? (
@@ -55,12 +54,12 @@ export default async function ToolsPage() {
             className="ct-card-title"
             style={{ color: "var(--ct-alert-warning-text)" }}
           >
-            Engine CrewAI injoignable
+            CrewAI engine unreachable
           </div>
           <div className="ct-card-body">
             <code>{engineError}</code>
             <div style={{ marginTop: SPACING.sm }}>
-              Démarre le microservice Python pour voir le catalogue :{" "}
+              Start the Python microservice to see the catalog:{" "}
               <code>
                 cd services/crewai-engine &amp;&amp; uv run uvicorn src.main:app
                 --reload --port 8000
@@ -70,10 +69,10 @@ export default async function ToolsPage() {
         </div>
       ) : tools.length === 0 ? (
         <div className="ct-card">
-          <div className="ct-card-title">Catalogue vide</div>
+          <div className="ct-card-title">Empty catalog</div>
           <div className="ct-placeholder">
-            L&apos;engine CrewAI ne référence aucun outil pour cet utilisateur.
-            Provisionnez-en via la migration Supabase ou l&apos;API moteur.
+            The CrewAI engine references no tool for this user.
+            Provision some via Supabase migration or the engine API.
           </div>
         </div>
       ) : (
@@ -139,7 +138,7 @@ export default async function ToolsPage() {
                             letterSpacing: LETTER_SPACING.wide,
                           }}
                         >
-                          inactif
+                          inactive
                         </span>
                       ) : null}
                     </div>

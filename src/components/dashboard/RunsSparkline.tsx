@@ -8,8 +8,8 @@ export function RunsSparkline({ values }: Props) {
   if (!hasData) {
     return (
       <div className="ct-card">
-        <div className="ct-card-title">RUNS · 7J</div>
-        <p className="ct-placeholder">Aucune donnée — lance un premier run</p>
+        <div className="ct-card-title">RUNS · 7D</div>
+        <p className="ct-placeholder">No data — start a first run</p>
       </div>
     );
   }
@@ -33,12 +33,12 @@ export function RunsSparkline({ values }: Props) {
 
   return (
     <div className="ct-card">
-      <div className="ct-card-title">RUNS · 7J</div>
+      <div className="ct-card-title">RUNS · 7D</div>
       <svg
         className="ct-sparkline"
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
-        aria-label="Sparkline des runs sur 7 jours"
+        aria-label="Runs sparkline over 7 days"
       >
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">

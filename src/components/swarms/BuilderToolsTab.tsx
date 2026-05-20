@@ -29,7 +29,7 @@ export function BuilderToolsTab({
 }: BuilderToolsTabProps) {
   return (
     <div className="ct-card">
-      <div className="ct-card-title">Tools liés</div>
+      <div className="ct-card-title">Linked tools</div>
       <ToolsPickerWithAgentSelector
         availableTools={availableTools}
         selectedBindings={toolBindings}
@@ -63,8 +63,7 @@ function ToolsPickerWithAgentSelector({
   if (assignableAgents.length === 0) {
     return (
       <p className="ct-placeholder">
-        Ajoute d&apos;abord un agent dans l&apos;onglet Agents pour pouvoir lui
-        assigner des tools.
+        Add an agent in the Agents tab first to assign tools to it.
       </p>
     );
   }
@@ -81,7 +80,7 @@ function ToolsPickerWithAgentSelector({
             color: "var(--ct-text-muted)",
           }}
         >
-          Agent ciblé
+          Target agent
         </span>
         <select
           id={agentSelectId}

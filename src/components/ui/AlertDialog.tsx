@@ -51,8 +51,8 @@ export function AlertDialog({
   title,
   description,
   impact,
-  confirmLabel = "Confirmer",
-  cancelLabel = "Annuler",
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   variant = "default",
   busy: externalBusy = false,
 }: AlertDialogProps) {
@@ -196,7 +196,7 @@ export function AlertDialog({
             disabled={busy}
             aria-disabled={busy}
           >
-            {busy ? "Confirmation…" : confirmLabel}
+            {busy ? "Confirming…" : confirmLabel}
           </button>
         </div>
       </div>

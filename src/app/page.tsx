@@ -80,7 +80,7 @@ export default async function Home() {
         crewaiClient.listDecisions("chief-of-staff", latestRun.kickoff_id, { ownerId }),
       ]);
     } catch (err) {
-      partialDataError = err instanceof Error ? err.message : "Données partielles indisponibles";
+      partialDataError = err instanceof Error ? err.message : "Partial data unavailable";
     }
   }
 
@@ -88,11 +88,11 @@ export default async function Home() {
 
   // Formatage pour AgentStatePanel
   const lastRunAt = latestRun?.started_at
-    ? new Date(latestRun.started_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(latestRun.started_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
     : null;
 
   // Formatage pour AgentDiff
-  const sinceLabel = lastRunAt ? `depuis ${lastRunAt}` : "—";
+  const sinceLabel = lastRunAt ? `since ${lastRunAt}` : "—";
   const elapsed = latestRun?.finished_at && latestRun?.started_at
     ? `${Math.round((new Date(latestRun.finished_at).getTime() - new Date(latestRun.started_at).getTime()) / 60_000)} min`
     : "—";
@@ -142,7 +142,7 @@ export default async function Home() {
   // ── Live logs dérivés des steps ───────────────────────────────────────────
   const recentSteps = steps.slice(-12).map((s) => ({
     time: s.started_at
-      ? new Date(s.started_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+      ? new Date(s.started_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
       : "—",
     agent: s.agent_name,
     action: s.finished_at ? "done" : "running",
@@ -165,10 +165,10 @@ export default async function Home() {
           <span className="ct-eyebrow">Cockpit · MySwarms</span>
           <h1 className="ct-title">Orchestration Dashboard</h1>
           <p className="ct-sub">
-            {lastRunAt ? `Dernier run · ${lastRunAt}` : "Aucun run récent"}
+            {lastRunAt ? `Last run · ${lastRunAt}` : "No recent run"}
           </p>
           <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: FONT.sm }}>
-            Voir l&apos;historique des runs<Chevron direction="right" />
+            View run history<Chevron direction="right" />
           </Link>
         </div>
         <KickoffForm action={triggerKickoff} />
@@ -200,7 +200,7 @@ export default async function Home() {
             marginBottom: 16,
           }}
         >
-          Données partielles — étapes indisponibles{partialDataError ? ` (${partialDataError})` : ""}
+          Partial data — steps unavailable{partialDataError ? ` (${partialDataError})` : ""}
         </div>
       )}
 

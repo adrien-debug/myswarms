@@ -82,7 +82,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
             marginBottom: SPACING.xxs,
           }}
         >
-          Adresse e-mail
+          Email
         </label>
         <input
           id="email"
@@ -92,7 +92,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="vous@exemple.com"
+          placeholder="you@example.com"
           style={{
             width: "100%",
             padding: `${SPACING.s}px ${SPACING.md}px`,
@@ -127,7 +127,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
             marginBottom: SPACING.xxs,
           }}
         >
-          Mot de passe
+          Password
         </label>
         <input
           id="password"
@@ -164,7 +164,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
         className="ct-seg-btn primary"
         style={{ width: "100%" }}
       >
-        {loading ? "Connexion…" : "Se connecter"}
+        {loading ? "Signing in…" : "Sign in"}
       </button>
     </form>
   );

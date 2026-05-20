@@ -38,7 +38,7 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
       router.push(`/swarms/${swarmId}/runs/${runId}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      setError(err instanceof Error ? err.message : "Unknown error");
       setBusy(false);
     }
   }
@@ -51,7 +51,7 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
         onClick={handleRun}
         disabled={busy}
         aria-disabled={busy}
-        title="Lance un run on_demand"
+        title="Trigger an on_demand run"
       >
         {busy ? "Run…" : "Run"}
       </button>

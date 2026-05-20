@@ -12,8 +12,8 @@ export function StorageBreakdown({ segments }: Props) {
   if (!segments || segments.length === 0) {
     return (
       <div className="ct-card">
-        <div className="ct-card-title">COST · 30J</div>
-        <p className="ct-placeholder">Aucune donnée de coût disponible</p>
+        <div className="ct-card-title">COST · 30D</div>
+        <p className="ct-placeholder">No cost data available</p>
       </div>
     );
   }
@@ -22,7 +22,7 @@ export function StorageBreakdown({ segments }: Props) {
 
   return (
     <div className="ct-card">
-      <div className="ct-card-title">COST · 30J</div>
+      <div className="ct-card-title">COST · 30D</div>
       <div className="ct-storage-bar">
         {segments.map((seg) => (
           <div

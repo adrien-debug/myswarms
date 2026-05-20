@@ -141,7 +141,7 @@ export default function SwarmDetailLoading() {
       </div>
 
       <p className="ct-sub" style={{ marginTop: SPACING.md }}>
-        Chargement…
+        Loading…
       </p>
     </>
   );

@@ -27,8 +27,8 @@ export function SwarmArchiveButton({
 
   async function handleArchive() {
     const ok = window.confirm(
-      `Archiver le swarm "${swarmName}" ?\n\n` +
-        "Le swarm ne sera plus déclenchable. Tu peux le réactiver plus tard.",
+      `Archive swarm "${swarmName}"?\n\n` +
+        "The swarm will no longer be triggerable. You can reactivate it later.",
     );
     if (!ok) return;
 
@@ -43,7 +43,7 @@ export function SwarmArchiveButton({
       router.push("/swarms");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      setError(err instanceof Error ? err.message : "Unknown error");
       setBusy(false);
     }
   }
@@ -55,9 +55,9 @@ export function SwarmArchiveButton({
         className="ct-seg-btn"
         onClick={handleArchive}
         disabled={busy}
-        title="Désactive le swarm — réversible"
+        title="Disable the swarm — reversible"
       >
-        {busy ? "Archivage…" : "Archiver"}
+        {busy ? "Archiving…" : "Archive"}
       </button>
       {error ? (
         <span

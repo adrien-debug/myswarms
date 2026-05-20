@@ -8,7 +8,7 @@ import {
 } from "@/lib/ui/tokens";
 
 export const metadata = {
-  title: "Connexion — MySwarms",
+  title: "Sign in — MySwarms",
 };
 
 /**
@@ -93,13 +93,13 @@ export default async function LoginPage({
             textAlign: "center",
           }}
         >
-          Connexion
+          Sign in
         </h1>
         <p
           className="ct-sub"
           style={{ textAlign: "center" }}
         >
-          Accès restreint — authentification requise.
+          Restricted access — authentication required.
         </p>
 
         <LoginForm returnTo={returnTo} />

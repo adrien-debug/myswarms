@@ -45,10 +45,10 @@ export function SwarmTaskForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!task.name.trim()) { setError("Le nom est requis."); return; }
-    if (!task.agent_id) { setError("Assigne un agent à la tâche."); return; }
-    if (!task.description.trim()) { setError("La description est requise."); return; }
-    if (!task.expected_output.trim()) { setError("La sortie attendue est requise."); return; }
+    if (!task.name.trim()) { setError("Name is required."); return; }
+    if (!task.agent_id) { setError("Assign an agent to the task."); return; }
+    if (!task.description.trim()) { setError("Description is required."); return; }
+    if (!task.expected_output.trim()) { setError("Expected output is required."); return; }
     onSubmit(task);
   };
 
@@ -64,7 +64,7 @@ export function SwarmTaskForm({
     >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
         <label style={labelStyle}>
-          <span style={labelText}>Nom</span>
+          <span style={labelText}>Name</span>
           <input
             type="text"
             value={task.name}
@@ -75,7 +75,7 @@ export function SwarmTaskForm({
         </label>
 
         <label style={labelStyle}>
-          <span style={labelText}>Agent assigné</span>
+          <span style={labelText}>Assigned agent</span>
           <select
             value={task.agent_id ?? ""}
             onChange={(e) => update("agent_id", e.target.value)}
@@ -87,12 +87,12 @@ export function SwarmTaskForm({
                 un re-pair AVANT save (TaskInputSchema reste required). */}
             {!task.agent_id ? (
               <option value="" disabled>
-                Aucun agent — re-pair requis
+                No agent — re-pair required
               </option>
             ) : null}
             {assignableAgents.length === 0 ? (
               <option value="" disabled>
-                Aucun agent — ajoute-en un d&apos;abord
+                No agent — add one first
               </option>
             ) : (
               assignableAgents.map((a) => (
@@ -117,7 +117,7 @@ export function SwarmTaskForm({
       </label>
 
       <label style={labelStyle}>
-        <span style={labelText}>Sortie attendue</span>
+        <span style={labelText}>Expected output</span>
         <textarea
           value={task.expected_output}
           onChange={(e) => update("expected_output", e.target.value)}
@@ -128,7 +128,7 @@ export function SwarmTaskForm({
       </label>
 
       <label style={labelStyle}>
-        <span style={labelText}>Dépend de la tâche</span>
+        <span style={labelText}>Depends on task</span>
         <select
           value={task.depends_on_task_id ?? ""}
           onChange={(e) =>
@@ -139,7 +139,7 @@ export function SwarmTaskForm({
           }
           style={inputStyle}
         >
-          <option value="">Aucune (racine)</option>
+          <option value="">None (root)</option>
           {dependableTasks.map((t) =>
             t.id ? (
               <option key={t.id} value={t.id}>
@@ -170,11 +170,11 @@ export function SwarmTaskForm({
       <div style={{ display: "flex", gap: SPACING.sm, justifyContent: "flex-end" }}>
         {onCancel ? (
           <button type="button" className="ct-seg-btn" onClick={onCancel}>
-            Annuler
+            Cancel
           </button>
         ) : null}
         <Button type="submit" variant="primary">
-          {initialTask ? "Mettre à jour" : "Ajouter tâche"}
+          {initialTask ? "Update" : "Add task"}
         </Button>
       </div>
     </form>

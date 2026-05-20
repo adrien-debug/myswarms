@@ -123,7 +123,7 @@ export default function ChiefRunLoading() {
         style={{ opacity: 0.45, minHeight: 80 }}
       />
 
-      <p className="ct-sub">Chargement du run…</p>
+      <p className="ct-sub">Loading run…</p>
     </>
   );
 }

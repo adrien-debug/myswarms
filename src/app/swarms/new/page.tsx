@@ -16,7 +16,7 @@ export default function NewSwarmPage() {
     let cancelled = false;
     fetch("/api/tools", { signal: AbortSignal.timeout(15000) })
       .then((r) => {
-        if (!r.ok) throw new Error(`Catalogue indisponible (HTTP ${r.status})`);
+        if (!r.ok) throw new Error(`Catalog unavailable (HTTP ${r.status})`);
         return r.json();
       })
       .then((data: Tool[]) => {
@@ -26,8 +26,8 @@ export default function NewSwarmPage() {
         if (cancelled) return;
         const msg =
           err instanceof Error && err.name === "TimeoutError"
-            ? "Délai dépassé — moteur CrewAI injoignable."
-            : "Impossible de charger les outils.";
+            ? "Timeout — CrewAI engine unreachable."
+            : "Could not load tools.";
         setToolsError(msg);
       })
       .finally(() => {
@@ -48,17 +48,16 @@ export default function NewSwarmPage() {
           <Chevron direction="left" />Swarms
         </Link>
       </div>
-      <h1 className="ct-title">Nouveau swarm</h1>
+      <h1 className="ct-title">New swarm</h1>
       <p className="ct-sub">
-        Définis le nom, les agents, les tâches et les outils. Tu pourras éditer
-        après création.
+        Define name, agents, tasks and tools. You can edit after creation.
       </p>
 
       {toolsLoading ? (
         <div className="ct-card" aria-busy="true" aria-live="polite">
-          <div className="ct-card-title">Chargement des outils…</div>
+          <div className="ct-card-title">Loading tools…</div>
           <div className="ct-placeholder">
-            Récupération du catalogue depuis le moteur CrewAI.
+            Fetching catalog from the CrewAI engine.
           </div>
         </div>
       ) : toolsError ? (
@@ -86,7 +85,7 @@ export default function NewSwarmPage() {
                 setReloadKey((k) => k + 1);
               }}
             >
-              Réessayer
+              Retry
             </button>
           </div>
         </div>

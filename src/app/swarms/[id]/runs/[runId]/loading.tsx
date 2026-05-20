@@ -107,7 +107,7 @@ export default function SwarmRunLoading() {
         />
       ))}
 
-      <p className="ct-sub">Chargement du run…</p>
+      <p className="ct-sub">Loading run…</p>
     </>
   );
 }

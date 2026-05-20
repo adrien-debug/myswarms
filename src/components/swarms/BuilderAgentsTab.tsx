@@ -55,7 +55,7 @@ export function BuilderAgentsTab({
             className="ct-seg-btn primary"
             onClick={() => setShowForm(true)}
           >
-            + Ajouter
+            + Add
           </button>
         ) : null}
       </div>
@@ -101,22 +101,22 @@ export function BuilderAgentsTab({
                 <button
                   type="button"
                   className="ct-seg-btn"
-                  aria-label={`Éditer l'agent ${a.name}`}
+                  aria-label={`Edit agent ${a.name}`}
                   onClick={() => setEditingIdx(idx)}
                 >
-                  Éditer
+                  Edit
                 </button>
                 <button
                   type="button"
                   className="ct-seg-btn"
-                  aria-label={`Supprimer l'agent ${a.name}`}
+                  aria-label={`Delete agent ${a.name}`}
                   onClick={() => {
-                    if (window.confirm(`Supprimer l'agent « ${a.name} » ?`)) {
+                    if (window.confirm(`Delete agent "${a.name}"?`)) {
                       onRemove(idx);
                     }
                   }}
                 >
-                  Supprimer
+                  Delete
                 </button>
               </div>
             </div>
@@ -126,7 +126,7 @@ export function BuilderAgentsTab({
 
       {agents.length === 0 && !showForm ? (
         <p className="ct-placeholder">
-          Aucun agent. Ajoute au moins un coordinator pour démarrer.
+          No agent yet. Add at least one coordinator to start.
         </p>
       ) : null}
     </div>

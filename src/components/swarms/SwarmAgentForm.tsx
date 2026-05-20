@@ -47,8 +47,8 @@ export function SwarmAgentForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!agent.name.trim()) { setError("Le nom est requis."); return; }
-    if (!agent.system_prompt.trim()) { setError("Le system prompt est requis."); return; }
+    if (!agent.name.trim()) { setError("Name is required."); return; }
+    if (!agent.system_prompt.trim()) { setError("System prompt is required."); return; }
     onSubmit(agent);
   };
 
@@ -59,7 +59,7 @@ export function SwarmAgentForm({
     >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
         <label style={labelStyle}>
-          <span style={labelText}>Nom</span>
+          <span style={labelText}>Name</span>
           <input
             type="text"
             value={agent.name}
@@ -69,7 +69,7 @@ export function SwarmAgentForm({
           />
         </label>
         <label style={labelStyle}>
-          <span style={labelText}>Rôle</span>
+          <span style={labelText}>Role</span>
           <select
             value={agent.role}
             onChange={(e) => update("role", e.target.value as AgentRole)}
@@ -126,11 +126,11 @@ export function SwarmAgentForm({
       <div style={{ display: "flex", gap: SPACING.sm, justifyContent: "flex-end" }}>
         {onCancel ? (
           <button type="button" className="ct-seg-btn" onClick={onCancel}>
-            Annuler
+            Cancel
           </button>
         ) : null}
         <Button type="submit" variant="primary">
-          {initialAgent ? "Mettre à jour" : "Ajouter agent"}
+          {initialAgent ? "Update" : "Add agent"}
         </Button>
       </div>
     </form>

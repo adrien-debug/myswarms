@@ -7,9 +7,9 @@ import { SPACING } from "@/lib/ui/tokens";
 export default function ToolsLoading() {
   return (
     <>
-      <span className="ct-eyebrow">Catalogue</span>
+      <span className="ct-eyebrow">Catalog</span>
       <h1 className="ct-title">Tools</h1>
-      <p className="ct-sub">Chargement du catalogue…</p>
+      <p className="ct-sub">Loading catalog…</p>
 
       <div
         aria-busy="true"

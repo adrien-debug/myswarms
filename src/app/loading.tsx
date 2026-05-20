@@ -124,7 +124,7 @@ export default function HomeLoading() {
       </div>
 
       <p className="ct-sub" style={{ marginTop: SPACING.xl }}>
-        Chargement…
+        Loading…
       </p>
     </div>
   );

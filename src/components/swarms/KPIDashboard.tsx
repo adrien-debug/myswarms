@@ -17,7 +17,7 @@ export function KPIDashboard({ kpis }: KPIDashboardProps) {
   const items: KPI[] = kpis ?? [
     { label: "Total swarms", value: "—", accent: true },
     { label: "Active runs", value: "—" },
-    { label: "Runs 30j", value: "—" },
+    { label: "Runs 30d", value: "—" },
     { label: "Success rate", value: "—" },
   ];
 

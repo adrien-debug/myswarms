@@ -51,7 +51,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           </Link>
         </div>
         <ErrorLayout
-          title="Run introuvable"
+          title="Run not found"
           message={err instanceof Error ? err.message : "Unknown error"}
         />
       </>
@@ -106,12 +106,12 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         kpis={[
           {
             label: "Tokens in",
-            value: run.total_tokens_in.toLocaleString("fr-FR"),
+            value: run.total_tokens_in.toLocaleString("en-US"),
             accent: true,
           },
           {
             label: "Tokens out",
-            value: run.total_tokens_out.toLocaleString("fr-FR"),
+            value: run.total_tokens_out.toLocaleString("en-US"),
           },
           { label: "Cost $", value: run.total_cost_usd.toFixed(4) },
           { label: "Steps", value: run.steps.length },
@@ -119,7 +119,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
       />
 
       <div className="ct-card">
-        <div className="ct-card-title">Métadonnées</div>
+        <div className="ct-card-title">Metadata</div>
         <div
           style={{
             display: "grid",
@@ -128,14 +128,14 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           }}
         >
           <Field
-            label="Démarré"
+            label="Started"
             value={formatDate(run.started_at, {
               withSeconds: true,
               withYear: true,
             })}
           />
           <Field
-            label="Terminé"
+            label="Finished"
             value={
               run.finished_at
                 ? formatDate(run.finished_at, {
@@ -159,7 +159,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             background: "var(--ct-accent-soft)",
           }}
         >
-          <div className="ct-card-title">Erreur</div>
+          <div className="ct-card-title">Error</div>
           <pre
             style={{
               fontSize: FONT.sm,
@@ -176,7 +176,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
 
       {run.result_text != null ? (
         <div className="ct-card">
-          <div className="ct-card-title">Résultat</div>
+          <div className="ct-card-title">Result</div>
           <pre
             style={{
               background: "var(--ct-surface-2)",

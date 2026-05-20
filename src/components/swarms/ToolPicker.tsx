@@ -63,7 +63,7 @@ export function ToolPicker({
   if (availableTools.length === 0) {
     return (
       <p className="ct-placeholder">
-        Aucun tool disponible. Crée-en depuis la page Tools (à venir).
+        No tool available. Create some from the Tools page (coming).
       </p>
     );
   }
@@ -71,7 +71,7 @@ export function ToolPicker({
   if (!agentId) {
     return (
       <p className="ct-placeholder">
-        Sélectionne d&apos;abord un agent pour lui assigner des tools.
+        Select an agent first to assign tools.
       </p>
     );
   }
@@ -108,7 +108,7 @@ export function ToolPicker({
                   className="ct-seg-btn"
                   onClick={() => toggle(tool)}
                   aria-pressed={isSelected}
-                  aria-label={`${tool.name} — ${isSelected ? "sélectionné" : "non sélectionné"}`}
+                  aria-label={`${tool.name} — ${isSelected ? "selected" : "not selected"}`}
                   style={{
                     background: isSelected
                       ? "var(--ct-accent-soft)"

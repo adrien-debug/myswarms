@@ -103,7 +103,7 @@ export function ArchitectModal({
           error?: string;
         } | null;
         throw new Error(
-          body?.error ?? `Échec de la génération (${res.status})`,
+          body?.error ?? `Generation failed (${res.status})`,
         );
       }
       const data = (await res.json()) as ArchitectResponse;
@@ -111,7 +111,7 @@ export function ArchitectModal({
       setPhase("success");
     } catch (err) {
       setErrorMsg(
-        err instanceof Error ? err.message : "Erreur inconnue de l'architecte",
+        err instanceof Error ? err.message : "Unknown architect error",
       );
       setPhase("error");
     }
@@ -151,13 +151,13 @@ export function ArchitectModal({
           <div>
             <div className="ct-eyebrow">Architect Agent</div>
             <div id={titleId} className="ct-card-title" style={{ marginTop: SPACING.xs }}>
-              Générer un swarm avec l&apos;IA
+              Generate a swarm with AI
             </div>
           </div>
           <button
             type="button"
             className="ct-seg-btn"
-            aria-label="Fermer la fenêtre de génération"
+            aria-label="Close generation window"
             onClick={onClose}
             disabled={pending}
             style={{
@@ -175,15 +175,14 @@ export function ArchitectModal({
         </div>
 
         <p id={descId} className="ct-card-body" style={{ marginBottom: SPACING.md }}>
-          Décris ce que ton swarm doit faire. L&apos;architecte propose une
-          composition d&apos;agents et de tâches que tu pourras éditer avant de
-          créer le swarm.
+          Describe what your swarm should do. The architect suggests an
+          agent and task composition you can edit before creating the swarm.
         </p>
 
         {(phase === "idle" || phase === "error") && (
           <>
             <label htmlFor="architect-modal-textarea" style={labelStyle}>
-              <span style={labelText}>Description en langage naturel</span>
+              <span style={labelText}>Natural language description</span>
               <textarea
                 id="architect-modal-textarea"
                 ref={textareaRef}
@@ -193,11 +192,11 @@ export function ArchitectModal({
                 maxLength={PROMPT_MAX}
                 disabled={pending}
                 style={{ ...inputStyle, resize: "vertical" }}
-                placeholder="ex: lis mes emails non lus, classe-les par priorité, rédige un résumé quotidien et planifie les actions urgentes dans mon calendrier"
+                placeholder="e.g. read my unread emails, sort them by priority, draft a daily summary and schedule urgent actions in my calendar"
               />
               <span style={hintStyle}>
                 {prompt.trim().length}/{PROMPT_MAX} — minimum {PROMPT_MIN}{" "}
-                caractères
+                characters
               </span>
             </label>
 
@@ -215,17 +214,17 @@ export function ArchitectModal({
         {phase === "loading" && (
           <div style={loadingBoxStyle} aria-live="polite">
             <span style={spinnerStyle} aria-hidden="true" />
-            <span>L&apos;architecte conçoit ton swarm…</span>
+            <span>The architect is designing your swarm…</span>
           </div>
         )}
 
         {phase === "success" && result && (
           <div style={successBoxStyle} aria-live="polite">
-            <div style={labelText}>Spec générée</div>
+            <div style={labelText}>Generated spec</div>
             <p className="ct-card-body" style={{ margin: 0 }}>
-              <strong>{result.spec.name || "Swarm sans nom"}</strong> —{" "}
+              <strong>{result.spec.name || "Unnamed swarm"}</strong> —{" "}
               {result.spec.agents?.length ?? 0} agent(s),{" "}
-              {result.spec.tasks?.length ?? 0} tâche(s).
+              {result.spec.tasks?.length ?? 0} task(s).
             </p>
             {result.rationale ? (
               <p className="ct-card-body" style={{ margin: 0 }}>
@@ -249,7 +248,7 @@ export function ArchitectModal({
             onClick={onClose}
             disabled={pending}
           >
-            Annuler
+            Cancel
           </button>
           {phase === "success" ? (
             <button
@@ -257,7 +256,7 @@ export function ArchitectModal({
               className="ct-seg-btn primary"
               onClick={applyResult}
             >
-              Injecter dans le builder
+              Inject into builder
             </button>
           ) : (
             <button
@@ -267,10 +266,10 @@ export function ArchitectModal({
               disabled={!promptValid || pending}
             >
               {pending
-                ? "Génération…"
+                ? "Generating…"
                 : phase === "error"
-                  ? "Réessayer"
-                  : "Générer"}
+                  ? "Retry"
+                  : "Generate"}
             </button>
           )}
         </div>

@@ -55,7 +55,7 @@ export function LaunchButton() {
     try {
       const startRes = await fetch("/api/system/start", { method: "POST" });
       if (!startRes.ok) {
-        throw new Error("Démarrage impossible — engine injoignable");
+        throw new Error("Cannot start — engine unreachable");
       }
       let started = false;
       for (let i = 0; i < ENGINE_START_MAX_ATTEMPTS; i++) {
@@ -69,11 +69,11 @@ export function LaunchButton() {
         }
       }
       if (!started) {
-        setError(`Engine non démarré après ${ENGINE_START_MAX_ATTEMPTS} s — vérifie les logs`);
+        setError(`Engine did not start after ${ENGINE_START_MAX_ATTEMPTS}s — check logs`);
         setStatus("down");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Démarrage impossible — engine injoignable");
+      setError(err instanceof Error ? err.message : "Cannot start — engine unreachable");
       setStatus("down");
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export function LaunchButton() {
     ? error
     : status === "up"
       ? "Engine running"
-      : "Cliquer pour démarrer l'engine";
+      : "Click to start the engine";
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
@@ -110,7 +110,7 @@ export function LaunchButton() {
         aria-disabled={isDisabled}
         className="ct-seg-btn"
         title={titleText}
-        aria-label={`Moteur CrewAI — ${label}${status === "down" ? ". Cliquer pour démarrer." : ""}`}
+        aria-label={`CrewAI engine — ${label}${status === "down" ? ". Click to start." : ""}`}
         style={{
           color: dotColor,
           fontWeight: status === "down" ? FONT_WEIGHT.bold : undefined,

@@ -10,7 +10,7 @@ export default function SwarmsLoading() {
       {/* Eyebrow + titre */}
       <span className="ct-eyebrow">Cockpit · MySwarms</span>
       <h1 className="ct-title">Swarms</h1>
-      <p className="ct-sub">Chargement…</p>
+      <p className="ct-sub">Loading…</p>
 
       {/* KPIs skeleton — 4 cartes */}
       <div

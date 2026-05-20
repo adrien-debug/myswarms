@@ -11,7 +11,7 @@ export default function CrewsIndex() {
     <>
       <div className="ct-eyebrow">Cockpit · Crews</div>
       <h1 className="ct-title">Crews</h1>
-      <p className="ct-sub">Tes crews AI disponibles.</p>
+      <p className="ct-sub">Your available AI crews.</p>
 
       <div className="ct-card">
         <div
@@ -42,7 +42,7 @@ export default function CrewsIndex() {
             className="ct-seg-btn"
             style={{ flexShrink: 0 }}
           >
-            Ouvrir<Chevron direction="right" />
+            Open<Chevron direction="right" />
           </Link>
         </div>
       </div>

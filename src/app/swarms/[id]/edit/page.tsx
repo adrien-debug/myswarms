@@ -101,8 +101,8 @@ export default function EditSwarmPage({ params }: PageProps) {
           </Link>
         </div>
         <ErrorLayout
-          title="Édition impossible"
-          message={error ?? "Swarm introuvable."}
+          title="Edit failed"
+          message={error ?? "Swarm not found."}
         />
       </>
     );
@@ -142,8 +142,8 @@ export default function EditSwarmPage({ params }: PageProps) {
           <Chevron direction="left" />{swarm.name}
         </Link>
       </div>
-      <PageTitle>Éditer le swarm</PageTitle>
-      <p className="ct-sub">Modifie nom, agents, tâches et tools liés.</p>
+      <PageTitle>Edit swarm</PageTitle>
+      <p className="ct-sub">Edit name, agents, tasks and linked tools.</p>
 
       <SwarmBuilder
         mode="edit"

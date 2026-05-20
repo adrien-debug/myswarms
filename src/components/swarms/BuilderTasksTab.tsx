@@ -49,7 +49,7 @@ export function BuilderTasksTab({
         }}
       >
         <div className="ct-card-title" style={{ marginBottom: 0 }}>
-          Tâches ({tasks.length})
+          Tasks ({tasks.length})
         </div>
         {!showForm && editingIdx === null ? (
           <>
@@ -57,7 +57,7 @@ export function BuilderTasksTab({
               id="add-task-help"
               className="sr-only"
             >
-              Ajoute au moins un agent avant d&apos;ajouter une tâche.
+              Add at least one agent before adding a task.
             </span>
             <button
               type="button"
@@ -70,7 +70,7 @@ export function BuilderTasksTab({
               aria-describedby={agents.length === 0 ? "add-task-help" : undefined}
               title={
                 agents.length === 0
-                  ? "Crée d'abord un agent (onglet Agents)"
+                  ? "Add an agent first (Agents tab)"
                   : undefined
               }
               style={{
@@ -78,7 +78,7 @@ export function BuilderTasksTab({
                 cursor: agents.length === 0 ? "not-allowed" : "pointer",
               }}
             >
-              + Ajouter
+              + Add
             </button>
           </>
         ) : null}
@@ -89,7 +89,7 @@ export function BuilderTasksTab({
           className="ct-placeholder"
           style={{ color: "var(--ct-text-muted)" }}
         >
-          Crée d&apos;abord un agent — chaque tâche doit être assignée à un agent.
+          Add an agent first — each task must be assigned to an agent.
         </p>
       ) : null}
 
@@ -137,29 +137,29 @@ export function BuilderTasksTab({
                   >
                     {assignedAgent
                       ? `→ ${assignedAgent.name}`
-                      : "agent non assigné"}
+                      : "agent unassigned"}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: SPACING.xxs }}>
                   <button
                     type="button"
                     className="ct-seg-btn"
-                    aria-label={`Éditer la tâche ${t.name}`}
+                    aria-label={`Edit task ${t.name}`}
                     onClick={() => setEditingIdx(idx)}
                   >
-                    Éditer
+                    Edit
                   </button>
                   <button
                     type="button"
                     className="ct-seg-btn"
-                    aria-label={`Supprimer la tâche ${t.name}`}
+                    aria-label={`Delete task ${t.name}`}
                     onClick={() => {
-                      if (window.confirm(`Supprimer la tâche « ${t.name} » ?`)) {
+                      if (window.confirm(`Delete task "${t.name}"?`)) {
                         onRemove(idx);
                       }
                     }}
                   >
-                    Supprimer
+                    Delete
                   </button>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export function BuilderTasksTab({
 
       {tasks.length === 0 && !showForm && agents.length > 0 ? (
         <p className="ct-placeholder">
-          Aucune tâche. Définis ce que doit faire chaque agent.
+          No task yet. Define what each agent must do.
         </p>
       ) : null}
     </div>

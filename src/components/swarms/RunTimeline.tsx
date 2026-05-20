@@ -7,12 +7,12 @@ interface RunTimelineProps {
 }
 
 function emptyMessage(status?: string): string {
-  if (status === "pending") return "En attente de démarrage…";
+  if (status === "pending") return "Waiting to start…";
   if (status === "running" || status === "paused_hitl")
-    return "Exécution en cours — première étape imminente…";
+    return "Running — first step imminent…";
   if (status === "failed" || status === "cancelled")
-    return "Aucune étape enregistrée (arrêt avant exécution).";
-  return "Pas encore d’étapes exécutées.";
+    return "No step recorded (stopped before execution).";
+  return "No step executed yet.";
 }
 
 export function RunTimeline({ steps, status }: RunTimelineProps) {

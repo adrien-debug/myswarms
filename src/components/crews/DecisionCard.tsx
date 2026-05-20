@@ -40,7 +40,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       router.refresh();
     } catch {
-      setDecisionError(`Échec de l'action ${action}`);
+      setDecisionError(`Action ${action} failed`);
       committedRef.current = false;
       setCommitted(false);
     } finally {
@@ -91,7 +91,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontSize: FONT.base,
           }}
         >
-          Aucune décision prioritaire · Lancer un run pour voir ton P0
+          No priority decision · Start a run to see your P0
         </p>
       </div>
     );
@@ -121,7 +121,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             color: "var(--cos-p0)",
           }}
         >
-          P0 · à répondre
+          P0 · to reply
         </span>
         <span
           style={{
@@ -156,7 +156,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           color: "var(--ct-text-muted)",
         }}
       >
-        De : {p0Item.from}
+        From: {p0Item.from}
       </div>
 
       {/* Subject */}
@@ -208,7 +208,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
               marginBottom: SPACING.sm,
             }}
           >
-            Brouillon Draft Writer · Claude
+            Draft Writer · Claude
           </div>
           <div
             style={{
@@ -229,7 +229,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontStyle: "italic",
           }}
         >
-          (Aucun brouillon — relancer un run avec AGENT_MOCK_MODE=false)
+          (No draft — re-run with AGENT_MOCK_MODE=false)
         </div>
       )}
 
@@ -261,17 +261,17 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontStyle: "italic",
           }}
         >
-          Décision envoyée — actualisation…
+          Decision sent — refreshing…
         </p>
       )}
 
       {/* Actions */}
       <div style={{ display: "flex", gap: SPACING.sm, flexWrap: "wrap" }}>
-        {/* E — Envoyer */}
+        {/* E — Send */}
         <button
           className="ct-seg-btn"
           disabled
-          title="Phase 3 — approbation Composio Gmail requise"
+          title="Phase 3 — Composio Gmail approval required"
           style={{
             position: "relative",
             padding: `${SPACING.md}px ${SPACING.lg}px`,
@@ -287,7 +287,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontFamily: "inherit",
           }}
         >
-          E — Envoyer
+          E — Send
           <kbd
             style={{
               position: "absolute",
@@ -304,7 +304,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           </kbd>
         </button>
 
-        {/* M — Modifier */}
+        {/* M — Edit */}
         <button
           className="ct-seg-btn primary"
           onClick={() => runId && router.push(`/crews/chief-of-staff/runs/${runId}`)}
@@ -324,7 +324,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontFamily: "inherit",
           }}
         >
-          M — Modifier
+          M — Edit
           <kbd
             style={{
               position: "absolute",
@@ -379,7 +379,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           </kbd>
         </button>
 
-        {/* R — Rejeter */}
+        {/* R — Reject */}
         <button
           className="ct-seg-btn"
           onClick={() => void handleDecision("rejected")}
@@ -400,7 +400,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             fontFamily: "inherit",
           }}
         >
-          {loading === "rejected" ? "…" : "R — Rejeter"}
+          {loading === "rejected" ? "…" : "R — Reject"}
           <kbd
             style={{
               position: "absolute",

@@ -94,12 +94,12 @@ export function SwarmBuilder({
 
     // C5 : validation côté client avant d'envoyer un swarm structurellement vide.
     if (agents.length === 0) {
-      setSubmitError("Au moins 1 agent requis pour créer un swarm.");
+      setSubmitError("At least 1 agent required to create a swarm.");
       setSubmitting(false);
       return;
     }
     if (tasks.length === 0) {
-      setSubmitError("Au moins 1 tâche requise pour créer un swarm.");
+      setSubmitError("At least 1 task required to create a swarm.");
       setSubmitting(false);
       return;
     }
@@ -263,7 +263,7 @@ export function SwarmBuilder({
           }}
           disabled={submitting}
         >
-          ✨ Générer avec l&apos;IA
+          ✨ Generate with AI
         </button>
       </div>
 
@@ -402,7 +402,7 @@ export function SwarmBuilder({
               padding: SPACING.md,
               fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               overflow: "auto",
               maxHeight: SIZE.previewMaxH,
             }}
@@ -422,7 +422,7 @@ export function SwarmBuilder({
             background: "var(--ct-accent-soft)",
           }}
         >
-          <div className="ct-card-title">Erreur</div>
+          <div className="ct-card-title">Error</div>
           <p className="ct-card-body">{submitError}</p>
         </div>
       ) : null}
@@ -441,7 +441,7 @@ export function SwarmBuilder({
           onClick={() => router.push("/swarms")}
           disabled={submitting}
         >
-          Annuler
+          Cancel
         </button>
         <button
           type="submit"
@@ -449,10 +449,10 @@ export function SwarmBuilder({
           disabled={submitting}
         >
           {submitting
-            ? "Sauvegarde…"
+            ? "Saving…"
             : mode === "create"
-              ? "Créer le swarm"
-              : "Enregistrer"}
+              ? "Create swarm"
+              : "Save"}
         </button>
       </div>
     </form>

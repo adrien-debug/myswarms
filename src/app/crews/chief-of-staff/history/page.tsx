@@ -10,7 +10,7 @@ import { Chevron } from "@/components/ui/Chevron";
 
 const CREW_NAME = "chief-of-staff";
 
-export const metadata = { title: "Historique des runs — Chief of Staff — myswarms" };
+export const metadata = { title: "Run history — Chief of Staff — myswarms" };
 export const dynamic = "force-dynamic";
 
 export default async function ChiefOfStaffHistoryPage() {
@@ -46,15 +46,15 @@ export default async function ChiefOfStaffHistoryPage() {
         }}
       >
         <h1 className="ct-title" style={{ marginBottom: SPACING.xs }}>
-          Historique des runs
+          Run history
         </h1>
         <p className="ct-sub" style={{ marginBottom: 0 }}>
-          20 derniers runs du Daily Chief of Staff
+          Last 20 runs of the Daily Chief of Staff
         </p>
       </div>
 
       <section>
-        <div className="ct-eyebrow">Runs récents</div>
+        <div className="ct-eyebrow">Recent runs</div>
 
         {listError ? (
           <div
@@ -71,7 +71,7 @@ export default async function ChiefOfStaffHistoryPage() {
         ) : runs.length === 0 ? (
           <div className="ct-card">
             <p className="ct-card-body">
-              Aucun run pour l&apos;instant. Déclenche un brief depuis la page principale.
+              No run yet. Trigger a brief from the main page.
             </p>
           </div>
         ) : (
@@ -82,8 +82,8 @@ export default async function ChiefOfStaffHistoryPage() {
                   <th className="ct-th">Kickoff ID</th>
                   <th className="ct-th">Trigger</th>
                   <th className="ct-th">Status</th>
-                  <th className="ct-th">Démarré</th>
-                  <th className="ct-th">Terminé</th>
+                  <th className="ct-th">Started</th>
+                  <th className="ct-th">Finished</th>
                 </tr>
               </thead>
               <tbody>

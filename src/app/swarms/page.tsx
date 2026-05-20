@@ -30,14 +30,14 @@ export default async function SwarmsPage() {
       <div className="ct-eyebrow">Cockpit · MySwarms</div>
       <h1 className="ct-title">Swarms</h1>
       <p className="ct-sub">
-        Configure tes crews multi-agents, lance-les à la demande ou sur déclencheurs.
+        Configure your multi-agent crews, trigger them on demand or via schedules.
       </p>
 
       <KPIDashboard
         kpis={[
           { label: "Total swarms", value: totalSwarms, accent: true },
           { label: "Active runs", value: activeRuns },
-          { label: "Runs 30j", value: runs30d },
+          { label: "Runs 30d", value: runs30d },
           { label: "Success rate", value: successRate },
         ]}
       />
@@ -51,10 +51,10 @@ export default async function SwarmsPage() {
         }}
       >
         <div className="ct-eyebrow">
-          Tous les swarms
+          All swarms
         </div>
         <Link href="/swarms/new" className="ct-seg-btn primary">
-          + Nouveau swarm
+          + New swarm
         </Link>
       </div>
 

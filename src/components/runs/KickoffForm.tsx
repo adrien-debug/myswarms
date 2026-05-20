@@ -60,10 +60,10 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirm}
-        title="Lancer le run ?"
-        description="Cette action consomme des tokens LLM et n'est pas réversible."
-        confirmLabel="Lancer"
-        cancelLabel="Annuler"
+        title="Run this now?"
+        description="This action consumes LLM tokens and is not reversible."
+        confirmLabel="Run"
+        cancelLabel="Cancel"
         variant="warning"
       />
 

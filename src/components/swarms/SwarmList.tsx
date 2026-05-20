@@ -23,7 +23,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
         className="ct-card"
         style={{ borderColor: "var(--ct-border-accent)" }}
       >
-        <div className="ct-card-title">Erreur</div>
+        <div className="ct-card-title">Error</div>
         <p className="ct-card-body">{error}</p>
       </div>
     );
@@ -32,11 +32,11 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
   if (swarms.length === 0) {
     return (
       <div className="ct-card">
-        <div className="ct-card-title">Aucun swarm</div>
+        <div className="ct-card-title">No swarm</div>
         <p className="ct-card-body">
-          Crée ton premier swarm pour démarrer.{" "}
+          Create your first swarm to get started.{" "}
           <Link href="/swarms/new" style={{ color: "var(--ct-accent-strong)" }}>
-            Nouveau swarm <Chevron direction="right" />
+            New swarm <Chevron direction="right" />
           </Link>
         </p>
       </div>
@@ -56,11 +56,11 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
               textAlign: "left",
             }}
           >
-            <th style={thStyle}>Nom</th>
+            <th style={thStyle}>Name</th>
             <th style={thStyle}>Agents</th>
-            <th style={thStyle}>Dernière run</th>
-            <th style={thStyle}>Statut</th>
-            <th style={thStyle}>MAJ</th>
+            <th style={thStyle}>Last run</th>
+            <th style={thStyle}>Status</th>
+            <th style={thStyle}>Updated</th>
             <th style={thStyle}></th>
           </tr>
         </thead>
@@ -112,7 +112,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
                   href={`/swarms/${s.id}/edit`}
                   style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
                 >
-                  Éditer
+                  Edit
                 </Link>
               </td>
             </tr>

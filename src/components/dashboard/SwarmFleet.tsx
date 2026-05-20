@@ -17,9 +17,9 @@ export function SwarmFleet({ swarms }: Props) {
       <div className="ct-card">
         <div className="ct-card-title">SWARM FLEET</div>
         <p className="ct-placeholder">
-          Aucun swarm —{" "}
+          No swarm —{" "}
           <Link href="/swarms" className="ct-link">
-            créer un swarm
+            create a swarm
           </Link>
         </p>
       </div>
@@ -47,7 +47,7 @@ export function SwarmFleet({ swarms }: Props) {
               className={`status-badge ${swarm.isActive ? "nominal" : "warn"}`}
               style={{ flexShrink: 0 }}
             >
-              {swarm.isActive ? "actif" : "pause"}
+              {swarm.isActive ? "active" : "paused"}
             </span>
             <Link
               href={`/swarms/${swarm.id}`}

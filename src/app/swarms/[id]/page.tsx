@@ -67,7 +67,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           </Link>
         </div>
         <ErrorLayout
-          title="Swarm introuvable"
+          title="Swarm not found"
           message={err instanceof Error ? err.message : "Unknown error"}
         />
       </>
@@ -80,7 +80,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
     const ownerId = await getOwnerId();
     recentRuns = await swarmsClient.listRuns(id, 10, ownerId);
   } catch (err) {
-    listRunsError = err instanceof Error ? err.message : "Erreur de chargement des runs";
+    listRunsError = err instanceof Error ? err.message : "Failed to load runs";
   }
 
   const totalRuns = recentRuns.length;
@@ -119,12 +119,12 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             <PageTitle>{swarm.name}</PageTitle>
             {swarm.is_active === false ? (
               <span style={archivedBadgeStyle}>
-                Archivé
+                Archived
               </span>
             ) : null}
           </div>
           <p className="ct-sub">
-            {swarm.description || "Aucune description."}
+            {swarm.description || "No description."}
           </p>
         </div>
         <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
@@ -136,9 +136,9 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                 className="ct-seg-btn"
                 aria-disabled="true"
                 style={{ opacity: 0.5, pointerEvents: "none" }}
-                title="Swarm archivé — désactivé"
+                title="Archived swarm — disabled"
               >
-                Éditer
+                Edit
               </span>
               <span
                 style={{
@@ -147,13 +147,13 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                   fontStyle: "italic",
                 }}
               >
-                Swarm archivé — non déclenchable
+                Archived swarm — cannot be triggered
               </span>
             </>
           ) : (
             <>
               <Link href={`/swarms/${id}/edit`} className="ct-seg-btn">
-                Éditer
+                Edit
               </Link>
               <SwarmArchiveButton swarmId={id} swarmName={swarm.name} />
               <KickoffForm action={triggerKickoff} />
@@ -165,8 +165,8 @@ export default async function SwarmDetailPage({ params }: PageProps) {
       <KPIDashboard
         kpis={[
           { label: "Agents", value: swarm.agents.length, accent: true },
-          { label: "Tâches", value: swarm.tasks.length },
-          { label: "Runs récents", value: totalRuns },
+          { label: "Tasks", value: swarm.tasks.length },
+          { label: "Recent runs", value: totalRuns },
           { label: "Active", value: activeRuns },
         ]}
       />
@@ -177,7 +177,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           <div>
             <SectionLabel text="Agents" />
             {swarm.agents.length === 0 ? (
-              <p className="ct-placeholder">Aucun agent.</p>
+              <p className="ct-placeholder">No agent.</p>
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {swarm.agents.map((a) => (
@@ -200,9 +200,9 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             )}
           </div>
           <div>
-            <SectionLabel text="Tâches" />
+            <SectionLabel text="Tasks" />
             {swarm.tasks.length === 0 ? (
-              <p className="ct-placeholder">Aucune tâche.</p>
+              <p className="ct-placeholder">No task.</p>
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {swarm.tasks.map((t) => (
@@ -229,14 +229,14 @@ export default async function SwarmDetailPage({ params }: PageProps) {
       </div>
 
       <div className="ct-card">
-        <div className="ct-card-title">Runs récents</div>
+        <div className="ct-card-title">Recent runs</div>
         {listRunsError ? (
           <p className="ct-placeholder" style={{ color: "var(--ct-accent-strong)" }}>
             {listRunsError}
           </p>
         ) : recentRuns.length === 0 ? (
           <p className="ct-placeholder">
-            Aucun run pour l&apos;instant. Lance-en un via le bouton ci-dessus.
+            No run yet. Trigger one with the button above.
           </p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}>
@@ -299,7 +299,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
               marginTop: SPACING.md,
             }}
           >
-            {succeededRuns}/{totalRuns} succès · coût cumulé $
+            {succeededRuns}/{totalRuns} success · cumulative cost $
             {totalCost.toFixed(4)}
           </p>
         ) : null}

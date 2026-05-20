@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Connexion — MySwarms",
+  title: "Sign in — MySwarms",
 };
 
 /**

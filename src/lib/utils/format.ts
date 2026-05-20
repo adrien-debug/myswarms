@@ -1,5 +1,5 @@
 /**
- * Format ISO 8601 date string to localized fr-FR display.
+ * Format ISO 8601 date string to localized en-US display.
  * Falls back to the raw ISO if parsing/formatting fails (Vercel runtime, missing ICU).
  *
  * Accepte `null` / `undefined` pour matcher les fallbacks engine (timestamps
@@ -16,7 +16,7 @@ export function formatDate(
   if (!iso) return "—";
   try {
     const d = new Date(iso);
-    return d.toLocaleString("fr-FR", {
+    return d.toLocaleString("en-US", {
       day: "2-digit",
       month: "short",
       year: options.withYear ? "numeric" : undefined,

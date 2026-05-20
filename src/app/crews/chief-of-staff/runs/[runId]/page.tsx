@@ -51,8 +51,8 @@ export default async function RunDetailPage({ params }: PageProps) {
           <Chevron direction="left" />Cockpit
         </Link>
         <ErrorLayout
-          title="Run introuvable"
-          message={`Impossible de charger le run : ${err instanceof Error ? err.message : "erreur inconnue"}`}
+          title="Run not found"
+          message={`Failed to load run: ${err instanceof Error ? err.message : "unknown error"}`}
         />
       </>
     );
@@ -111,11 +111,11 @@ export default async function RunDetailPage({ params }: PageProps) {
         }}
       >
         <Field
-          label="Démarré à"
+          label="Started at"
           value={formatDate(run.started_at, { withSeconds: true, withYear: true })}
         />
         <Field
-          label="Terminé à"
+          label="Finished at"
           value={
             run.finished_at
               ? formatDate(run.finished_at, { withSeconds: true, withYear: true })
@@ -125,7 +125,7 @@ export default async function RunDetailPage({ params }: PageProps) {
       </div>
 
       <div style={{ marginBottom: SPACING.xl }}>
-        <div className="ct-eyebrow">Résultat</div>
+        <div className="ct-eyebrow">Result</div>
         {run.result ? (
           <div className="ct-card" style={{ padding: 0 }}>
             <pre
@@ -143,7 +143,7 @@ export default async function RunDetailPage({ params }: PageProps) {
             </pre>
           </div>
         ) : (
-          <p className="ct-placeholder">Pas encore de résultat.</p>
+          <p className="ct-placeholder">No result yet.</p>
         )}
       </div>
 

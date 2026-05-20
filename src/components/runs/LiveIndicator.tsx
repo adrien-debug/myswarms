@@ -17,7 +17,7 @@ export function LiveIndicator({ intervalSeconds = 5 }: LiveIndicatorProps) {
       }}
     >
       <span className="ct-pulse-dot" />
-      En direct · mise à jour auto ({intervalSeconds}s)
+      Live · auto-refresh ({intervalSeconds}s)
     </span>
   );
 }

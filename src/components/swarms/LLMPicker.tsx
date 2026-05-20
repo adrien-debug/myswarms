@@ -70,13 +70,13 @@ export function LLMPicker({
         >
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="openai">OpenAI</option>
-          <option value="hypercli">Hypercli (officiel)</option>
-          <option value="kimi">Kimi (alias historique)</option>
+          <option value="hypercli">Hypercli (official)</option>
+          <option value="kimi">Kimi (legacy alias)</option>
         </select>
       </label>
 
       <label style={labelStyle}>
-        <span style={labelText}>Modèle</span>
+        <span style={labelText}>Model</span>
         <select
           value={modelName}
           onChange={(e) => onModelChange(e.target.value)}
@@ -95,7 +95,7 @@ export function LLMPicker({
 
       <label style={labelStyle}>
         <span style={labelText}>
-          Température : <strong>{temperature.toFixed(1)}</strong>
+          Temperature: <strong>{temperature.toFixed(1)}</strong>
         </span>
         <input
           type="range"
@@ -105,7 +105,7 @@ export function LLMPicker({
           value={temperature}
           onChange={(e) => onTemperatureChange(Number(e.target.value))}
           style={{ width: "100%" }}
-          aria-label="Température"
+          aria-label="Temperature"
           aria-valuemin={TEMP_MIN}
           aria-valuemax={TEMP_MAX}
           aria-valuenow={temperature}

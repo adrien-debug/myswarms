@@ -96,7 +96,7 @@ export function AppBottomBar() {
   };
 
   return (
-    <nav className="ct-bottom-bar" role="navigation" aria-label="Navigation principale">
+    <nav className="ct-bottom-bar" role="navigation" aria-label="Main navigation">
       <div className="ct-bottom-bar-inner">
         <span className="ct-bottom-label">{sectionLabel}</span>
 
@@ -129,7 +129,7 @@ export function AppBottomBar() {
             ref={tablistRef}
             className="ct-seg-track"
             role="tablist"
-            aria-label="Sections du builder de swarm"
+            aria-label="Swarm builder sections"
             onKeyDown={handleTablistKeyDown}
           >
             {BUILDER_TABS.map((t) => (

@@ -1,5 +1,5 @@
 export const BUILDER_TABS = [
-  { id: "overview", label: "Setup" },
+  { id: "overview", label: "Overview" },
   { id: "agents", label: "Agents" },
   { id: "tasks", label: "Tasks" },
   { id: "tools", label: "Tools" },
