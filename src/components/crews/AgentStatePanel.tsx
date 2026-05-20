@@ -73,7 +73,9 @@ export function AgentStatePanel({
 
       {/* Agent list */}
       <div className="activity-list" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {agentRows.map((agent) => (
+        {agentRows.length === 0 ? (
+          <p className="ct-placeholder">Aucun agent actif — lance un run pour voir l&apos;activité.</p>
+        ) : agentRows.map((agent) => (
           <div
             key={agent.name}
             className="activity-item"
@@ -134,7 +136,7 @@ export function AgentStatePanel({
         <span>
           Dernier run · {lastRunAt ?? "Aucun run"} · {totalItems !== null ? totalItems : "—"} items
         </span>
-        <span>Prochain · 18:30</span>
+        <span>Prochain · —</span>
       </div>
     </div>
   );

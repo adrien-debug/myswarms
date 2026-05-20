@@ -21,9 +21,9 @@ export default async function SwarmsPage() {
 
   const totalSwarms = swarms.length;
   const activeRuns = swarms.filter((s) => s.last_run_status === "running").length;
-  // V1 : pas encore d'agrégat 30j depuis engine — affichage explicite
-  const runs30d = "Bientôt disponible";
-  const successRate = "Bientôt disponible";
+  // V1 : pas encore d'agrégat 30j depuis engine — tiret court en attendant (TODO V2)
+  const runs30d = "—";
+  const successRate = "—";
 
   return (
     <>

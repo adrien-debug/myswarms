@@ -6,7 +6,7 @@ import { SPACING } from "@/lib/ui/tokens";
  */
 export default function HomeLoading() {
   return (
-    <main aria-busy="true" aria-live="polite">
+    <div aria-busy="true" aria-live="polite">
       {/* Header skeleton */}
       <div
         style={{
@@ -126,6 +126,6 @@ export default function HomeLoading() {
       <p className="ct-sub" style={{ marginTop: SPACING.xl }}>
         Chargement…
       </p>
-    </main>
+    </div>
   );
 }

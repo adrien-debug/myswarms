@@ -8,7 +8,7 @@
 .bento {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 16px;
+  gap: var(--ct-space-lg);
   padding-bottom: 80px;
 }
 
@@ -35,10 +35,10 @@
 .ct-logs {
   background: var(--ct-surface-2);
   border: 1px solid var(--ct-border);
-  border-radius: 8px;
-  padding: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  border-radius: var(--ct-radius-md);
+  padding: var(--ct-space-md);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--ct-font-size-xxs);
   color: var(--ct-text-body);
   line-height: 1.55;
   max-height: 280px;
@@ -65,28 +65,28 @@
 /* Storage breakdown (pattern reference) */
 .ct-storage-bar {
   display: flex;
-  height: 8px;
-  border-radius: 4px;
+  height: var(--ct-space-sm);
+  border-radius: var(--ct-radius-sm);
   overflow: hidden;
   background: var(--ct-surface-2);
-  margin-bottom: 12px;
+  margin-bottom: var(--ct-space-md);
 }
 .ct-storage-seg { height: 100%; }
 .ct-storage-legend {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 11px;
+  gap: var(--ct-space-xxs);
+  font-size: var(--ct-font-size-xxs);
   color: var(--ct-text-muted);
 }
 .ct-storage-legend .legend-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ct-space-sm);
 }
 .ct-storage-legend .legend-dot {
-  width: 8px;
-  height: 8px;
+  width: var(--ct-space-sm);
+  height: var(--ct-space-sm);
   border-radius: 2px;
   flex-shrink: 0;
 }
