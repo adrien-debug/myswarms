@@ -40,6 +40,7 @@ Contrat de colonnes (cf migration 0006_swarms_dynamic.sql) :
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -119,6 +120,32 @@ def _filter_payload(payload: dict[str, Any], allowed: set[str]) -> dict[str, Any
 # ── Swarms CRUD ──────────────────────────────────────────────────────────────
 
 
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+
+
+def _resolve_swarm_id(client: Any, swarm_id: str, owner_id: str | None) -> str | None:
+    """Résout un swarm_id qui peut être un UUID *ou* un nom (slug).
+
+    Si `swarm_id` ressemble à un UUID → lookup direct par `id`.
+    Sinon → lookup par `name` (exact, case-sensitive) et retourne l'UUID trouvé.
+    Retourne None si aucun swarm correspondant n'est trouvé.
+    """
+    if _UUID_RE.match(swarm_id):
+        return swarm_id  # déjà un UUID valide, pas besoin de résoudre
+
+    # Lookup par name — supporte les slugs envoyés par Cortex (ex: "revue-projet")
+    query = client.table("swarms").select("id").eq("name", swarm_id).eq("is_active", True)
+    if owner_id:
+        query = query.eq("owner_id", owner_id)
+    res = query.maybe_single().execute()
+    if res and res.data:
+        return res.data["id"]
+    return None
+
+
 def get_swarm(
     swarm_id: str,
     owner_id: str | None = None,
@@ -128,6 +155,10 @@ def get_swarm(
     Si `owner_id` est fourni, filtre sur `swarms.owner_id` AVANT le filtre id —
     un swarm n'appartenant pas à l'owner renvoie None (404 côté route).
     Si `owner_id is None`, comportement service-role : pas de scoping.
+
+    `swarm_id` accepte un UUID *ou* un nom de swarm (slug Cortex comme
+    "revue-projet"). Si ce n'est pas un UUID valide, un lookup par `name`
+    est effectué automatiquement.
 
     Renvoie un dict :
         {
@@ -142,6 +173,12 @@ def get_swarm(
     if client is None:
         return None
     try:
+        # Résolution UUID-ou-nom : si Cortex envoie "revue-projet" on résout d'abord.
+        resolved_id = _resolve_swarm_id(client, swarm_id, owner_id)
+        if resolved_id is None:
+            return None
+        swarm_id = resolved_id
+
         query = client.table("swarms").select("*")
         if owner_id:
             query = query.eq("owner_id", owner_id)

@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# hive-engine
 
-## Getting Started
+> Backend CrewAI orchestration — microservice Python FastAPI déployé sur Railway.
 
-First, run the development server:
+Anciennement `hive — myswarms` (front Next.js + backend).
+Le front Next.js a été archivé dans `.archive/front-nextjs-2026-05-20/` après
+migration des pages vers `helm — hearst-os` (Admin Orchestrator).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Architecture
+
+```
+helm — hearst-os (Next.js user-facing)
+  ↓ HTTP via /api/crewai/* proxy
+hive-engine (Python FastAPI, ce repo)
+  ↓
+CrewAI agents + crews + tools + Supabase + Composio + Langfuse
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd services/crewai-engine
+uv sync
+uvicorn src.main:app --reload --port 8000
+curl http://127.0.0.1:8000/health  # → {"status":"ok"}
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy
 
-## Learn More
+Railway autodeploy on push to main, healthcheck `/health`.
 
-To learn more about Next.js, take a look at the following resources:
+## Endpoints
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route | Méthode | Description |
+|---|---|---|
+| `/v1/swarms` | GET/POST | List / Create |
+| `/v1/swarms/{id}` | GET/PATCH/DELETE | CRUD |
+| `/v1/swarms/{id}/kickoff` | POST | Démarrer un run |
+| `/v1/swarms/{id}/runs` | GET | Historique runs |
+| `/v1/swarms/{id}/status/{run_id}` | GET | État d'un run |
+| `/v1/runs/{run_id}` | GET | Détail run |
+| `/v1/swarms/architect/generate` | POST | Architect : NL brief → swarm spec |
+| `/v1/tools` | GET | Tools registry |
+| `/crews/chief-of-staff/kickoff` | POST | Daily Chief |
+| `/crews/chief-of-staff/runs` | GET | Historique runs Chief |
+| `/crews/chief-of-staff/status/{kickoff_id}` | GET | État run Chief |
+| `/crews/chief-of-staff/runs/{kickoff_id}/steps` | GET | Étapes |
+| `/crews/chief-of-staff/runs/{kickoff_id}/decisions` | GET | Décisions |
+| `/crews/chief-of-staff/decisions` | POST | Poster une décision |
+| `/health` | GET | Healthcheck |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Historique de migration
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Voir `.archive/front-nextjs-2026-05-20/MIGRATION_NOTES.md` pour le détail de ce qui a été porté.
