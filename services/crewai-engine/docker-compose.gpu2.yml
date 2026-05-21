@@ -1,0 +1,23 @@
+# hive-engine (swarms CrewAI) — déploiement GPU2 stable
+# Près de l'ingest Cortex + vLLM + langfuse. Exposé via tunnel CF swarms.hearst.app.
+# network_mode host : accès direct aux vLLM locaux (8000-8005) + simplicité réseau.
+services:
+  hive-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    image: hive-engine:gpu2
+    container_name: hive-engine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: "8010"
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8010/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 45s
+      retries: 3
