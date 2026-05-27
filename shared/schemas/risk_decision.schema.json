@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hedge.risk_decision.v1",
+  "title": "HEDGE RiskDecision",
+  "type": "object",
+  "required": [
+    "decision_id", "tenant_id", "request_id",
+    "decision", "rules_eval", "sized_orders",
+    "expires_at", "engine_version", "computed_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "decision_id":  { "type": "string", "format": "uuid" },
+    "tenant_id":    { "type": "string", "format": "uuid" },
+    "request_id":   { "type": "string", "format": "uuid" },
+    "decision":     { "enum": ["APPROVE", "RESIZE", "REJECT"] },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "cvar_breach",
+          "kelly_cap_hit",
+          "leverage_cap",
+          "drawdown_limit",
+          "vol_target_breach",
+          "notional_cap",
+          "daily_loss_limit",
+          "venue_not_allowed",
+          "asset_not_allowed",
+          "portfolio_stale",
+          "kill_switch_active",
+          "spec_invalid",
+          "insufficient_margin"
+        ]
+      }
+    },
+    "rules_eval":  { "type": "object" },
+    "sized_orders": {
+      "type": "array",
+      "items": { "$ref": "hedge.sized_order.v1" }
+    },
+    "expires_at":   { "type": "string", "format": "date-time" },
+    "engine_version": { "type": "string" },
+    "computed_at":    { "type": "string", "format": "date-time" }
+  }
+}

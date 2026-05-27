@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hedge.swarm_signal.v1",
+  "title": "HEDGE SwarmSignal",
+  "type": "object",
+  "required": ["tenant_id", "request_id", "agent", "status", "payload", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "tenant_id":  { "type": "string", "format": "uuid" },
+    "request_id": { "type": "string", "format": "uuid" },
+    "agent":      { "enum": ["technical", "sentiment", "macro", "onchain"] },
+    "status":     { "enum": ["ok", "degraded", "failed", "timeout"] },
+    "payload": {
+      "type": "object",
+      "description": "Agent-specific structured signal output."
+    },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "model":      { "type": ["string", "null"] },
+    "langfuse_trace_id": { "type": ["string", "null"] },
+    "latency_ms": { "type": ["integer", "null"], "minimum": 0 },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

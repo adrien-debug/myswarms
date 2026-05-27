@@ -83,3 +83,8 @@ login-with-nav.png
 .archive/**/node_modules/
 .archive/**/dist/
 .archive/**/.next/
+docs/api-config/SERVICES.md
+docs/credentials.local.txt
+.hedge-admin-*.tmp
+.env.hedge
+.env.hedge.*

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hedge.strategy_spec.v1",
+  "title": "HEDGE StrategySpec",
+  "type": "object",
+  "required": [
+    "spec_id", "request_id", "tenant_id", "asset", "venue",
+    "direction", "timeframe", "entry", "exit",
+    "risk_assumptions", "confidence", "model", "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "spec_id":    { "type": "string", "format": "uuid" },
+    "request_id": { "type": "string", "format": "uuid" },
+    "tenant_id":  { "type": "string", "format": "uuid" },
+    "asset":      { "type": "string", "minLength": 1, "maxLength": 16 },
+    "quote":      { "type": "string", "default": "USDT" },
+    "venue":      { "enum": ["hyperliquid", "binance", "bybit"] },
+    "direction":  { "enum": ["long", "short"] },
+    "timeframe":  { "enum": ["1m", "5m", "15m", "1h", "4h", "1d"] },
+    "entry": {
+      "type": "object",
+      "required": ["type", "conditions"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "enum": ["market", "limit", "conditional"] },
+        "price_hint": { "type": "number", "minimum": 0 },
+        "conditions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": ["indicator", "op", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "indicator": { "type": "string" },
+              "op":        { "enum": ["<", "<=", ">", ">=", "==", "cross_up", "cross_down"] },
+              "value":     { "type": ["number", "string"] }
+            }
+          }
+        }
+      }
+    },
+    "exit": {
+      "type": "object",
+      "required": ["take_profit", "stop_loss"],
+      "additionalProperties": false,
+      "properties": {
+        "take_profit": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["price_pct", "size_pct"],
+            "additionalProperties": false,
+            "properties": {
+              "price_pct": { "type": "number" },
+              "size_pct":  { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "stop_loss": {
+          "type": "object",
+          "required": ["price_pct", "type"],
+          "additionalProperties": false,
+          "properties": {
+            "price_pct": { "type": "number", "minimum": 0, "maximum": 1 },
+            "type":      { "enum": ["fixed", "trailing", "atr"] }
+          }
+        },
+        "time_stop_seconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "leverage_suggestion": { "type": "number", "minimum": 1, "maximum": 50 },
+    "risk_assumptions": {
+      "type": "object",
+      "required": ["expected_vol", "max_loss_pct"],
+      "additionalProperties": false,
+      "properties": {
+        "expected_vol":  { "type": "number", "minimum": 0 },
+        "max_loss_pct":  { "type": "number", "minimum": 0, "maximum": 1 },
+        "win_rate_est":  { "type": "number", "minimum": 0, "maximum": 1 },
+        "rr_ratio":      { "type": "number", "minimum": 0 }
+      }
+    },
+    "swarm_signals_ref": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "rationale":  { "type": "string", "maxLength": 4000 },
+    "model":      { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

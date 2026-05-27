@@ -1,0 +1,73 @@
+# HEDGE Prometheus alerting rules.
+# Critical = pages someone. Warn = ops dashboard. Info = informational only.
+
+groups:
+  - name: hedge.signing
+    rules:
+      - alert: HedgeSignatureFailure
+        expr: increase(hedge_signature_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HMAC signature failure detected in Execution Engine"
+          description: "{{ $value }} signature failures in the last 5 minutes — possible tampering or key mismatch."
+
+  - name: hedge.market
+    rules:
+      - alert: HedgeMarketStaleStorm
+        expr: rate(hedge_market_stale_events_total[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: error
+        annotations:
+          summary: "Market snapshots becoming stale rapidly"
+          description: "{{ $labels.venue }}/{{ $labels.symbol }} producing {{ $value }} stale events/sec."
+
+      - alert: HedgeWebsocketDown
+        expr: hedge_market_ws_connected == 0
+        for: 1m
+        labels:
+          severity: error
+        annotations:
+          summary: "WS feed disconnected"
+          description: "{{ $labels.venue }} {{ $labels.symbol }} WS has been disconnected for more than 1 minute."
+
+  - name: hedge.execution
+    rules:
+      - alert: HedgeExecRetryStorm
+        expr: rate(hedge_exec_attempts_total{status="error"}[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Execution retry storm"
+          description: "{{ $labels.venue }} hitting transient errors at {{ $value }} per second."
+
+      - alert: HedgeExecLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le, venue) (rate(hedge_exec_latency_ms_bucket[5m]))) > 2000
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Execution p95 latency > 2s on {{ $labels.venue }}"
+
+      - alert: HedgeLiveDowngradeStorm
+        expr: increase(hedge_mode_downgrade_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LIVE order(s) silently downgraded to dry_run"
+          description: "Reason: {{ $labels.reason }}. Investigate: tenant allowlist or notional cap config drift."
+
+  - name: hedge.risk
+    rules:
+      - alert: HedgeRejectStormMarketStale
+        expr: rate(hedge_risk_reject_reasons_total{reason="market_stale"}[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: error
+        annotations:
+          summary: "Risk rejecting due to market_stale at high rate"
+          description: "market-data-service may be lagging or down."
