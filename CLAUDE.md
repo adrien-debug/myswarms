@@ -1,56 +1,40 @@
-# MySwarms
+# MySwarms — hive-engine standalone
 
-> Projet créé via `/setup-adrien`. Stack : Next.js 16 (App Router) + TypeScript + Tailwind 4. Région Supabase : `eu-west-1`.
+> Stack : **backend Python multi-services** (FastAPI + CrewAI + HEDGE trading). Front Next.js archivé le 27 mai 2026 (commit `75f747f chore(decommission): archive front Next.js → hive-engine standalone`). Le front vit désormais dans `~/Dev/Hearst Corporation/hive-front-swarms`.
 
 ## Langue & mode
 - Toutes les réponses en **français**.
 - Mode **autonomie totale** : tu exécutes, tu ne demandes pas confirmation pour chaque étape.
 
 ## Stack
-- **Web** : Next.js 16 (App Router, src/) + React 19 + Tailwind 4 — port `3333` (script `next dev -p 3333`)
-- **API/Backend** : routes Next.js (`src/app/api/...`) — fallback port `3001` si extraction
-- **DB** : Supabase Postgres 17 — projet ref `fxeibmjebvxtoazuyyvz`
-- **Cache/Queue** : Upstash Redis REST (fallback — Railway Redis non provisionné, CLI v4.36 bug)
-- **Hosting** : Vercel (`hearst-corporation/myswarms`, projet `prj_D7svFbXovy2hni4hAPyN2AJI5Lnq`) + Railway (`693c476c-3d0c-4213-8088-63018863fa5d`)
 
-## 🐍 Microservice CrewAI Python — `services/crewai-engine/`
+- **Backend** : Python 3.12 + uv · FastAPI + uvicorn · crewai >= 1.14.4 · langfuse v3 · supabase-py
+- **DB** : Supabase Postgres 17 — projet ref `fxeibmjebvxtoazuyyvz` · 38 tables · RLS ON partout
+- **Cache/Queue** : Upstash Redis REST (Railway Redis non provisionné)
+- **Hosting** : Railway (`693c476c-3d0c-4213-8088-63018863fa5d`) + GPU2 (docker-compose.gpu2.yml port 8010)
 
-Moteur d'orchestration multi-agents pour le Daily Chief of Staff AI. **Python-only** (FastAPI + crewai + langfuse + uv). Déployé séparément sur Railway, appelé en HTTP/Bearer depuis Next.js.
+## Microservices Python (6 services + 1 module config)
 
-### Stack microservice
+| Service | Port local | Rôle |
+|---|---|---|
+| `crewai-engine` | 8000 (local) / 8010 (GPU2) | Orchestration CrewAI — Chief of Staff + swarms dynamiques |
+| `risk-engine` | 8001 | Décisions risk HEDGE déterministes (aucun LLM) |
+| `execution-engine` | 8002 | Dispatcher d'ordres HEDGE (dry_run par défaut) |
+| `strategy-builder` | 8003 | Construction stratégies HEDGE via LLM fusion (Kimi K2.6) |
+| `market-data-service` | 8004 | Ingestion market data (snapshots, orderbook, events) |
+| `swarm-orchestrator` | 8005 | Routage swarms — 4 agents parallèles (technical, sentiment, macro, onchain) |
 
-- Python 3.12 + uv (lockfile `uv.lock`)
-- FastAPI + uvicorn[standard]
-- crewai >= 1.14.4 (orchestration Flows + Crews)
-- langfuse v3 (observabilité)
-- supabase-py (persistence runs / steps)
+`services/observability/` : config Prometheus/alerting HEDGE (`hedge_rules.yml`, `prometheus.yml`) — **pas un service Python runnable**.
 
-### Communication Next.js ↔ Python
+## Communication front ↔ backend
+
+Le front `hive-front-swarms` (port 3333, hors ce repo) appelle ce backend via HTTP/Bearer :
 
 - URL dev : `CREWAI_ENGINE_URL=http://localhost:8000`
 - URL prod : `CREWAI_ENGINE_URL_PROD=https://crewai-engine-myswarms.up.railway.app`
-- Auth : bearer token partagé `CREWAI_ENGINE_AUTH_TOKEN` (même valeur des deux côtés, généré via `openssl rand -hex 32`)
+- Auth : bearer token `CREWAI_ENGINE_AUTH_TOKEN` (même valeur des deux côtés, généré via `openssl rand -hex 32`)
 - Endpoints : `POST /v1/crews/chief-of-staff/kickoff`, `GET /v1/crews/chief-of-staff/status/{uuid}`, `GET /health`
-- Wrapper TS : `src/lib/crewai/client.ts` (avec `AbortSignal.timeout(30s)` pour Railway cold starts)
-- Routes API Next.js (proxy) : `src/app/api/crews/chief-of-staff/{kickoff,status/[runId]}/route.ts`
-
-### Boot local
-
-```bash
-cd services/crewai-engine
-uv sync
-uv run uvicorn src.main:app --reload --port 8000
-```
-
-Le frontend Next.js (port 3333) appelle automatiquement le microservice si `CREWAI_ENGINE_URL=http://localhost:8000` dans `.env.local`.
-
-### Doc CrewAI
-
-Tout `docs/crewai/` (00-index + 8 sections, ~6600 lignes) contient la doc CrewAI ingérée exhaustivement avec annotation "Pertinence Daily Chief of Staff" page par page. À lire avant tout choix d'API.
-
-### Règle absolue
-
-JAMAIS hardcoder un secret dans `services/crewai-engine/src/` — toujours via `pydantic_settings` BaseSettings + `os.getenv()`. Même règle que Next.js (`process.env.X`).
+- Résolution slug→UUID : le status endpoint accepte aussi bien un UUID qu'un slug (résout en interne avant scoping).
 
 ## ⚡ MCP Supabase — règle absolue
 
@@ -83,12 +67,10 @@ Adrien dispose de 2 serveurs GPU + 1 Windows farm accessibles via Tailscale et L
 | Serveur | LAN | Tailscale | Aliases SSH | Services exposés |
 |---|---|---|---|---|
 | **GPU1** | `192.168.1.200` | `100.88.191.49` | `gpu1`, `gpu1-ts`, `ubuntu-comput3` | (workhorse secondaire) |
-| **GPU2** | `192.168.1.150` | `100.110.74.114` | `gpu2`, `gpu2-remote` | ComfyUI :8188 · InvokeAI :9090 |
+| **GPU2** | `192.168.1.150` | `100.110.74.114` | `gpu2`, `gpu2-remote` | ComfyUI :8188 · InvokeAI :9090 · crewai-engine :8010 |
 | **Windows farm** | `192.168.1.14` | — | `windows-farm`, `farm-pc` | Windows-only tasks |
 
 ### Pattern de connexion pour ce projet
-
-Si MySwarms a besoin de GPU (génération d'image/vidéo, training, inférence locale) :
 
 ```bash
 ssh -L 8188:localhost:8188 gpu2-remote -N &  # ComfyUI
@@ -101,6 +83,8 @@ COMFY_BASE=http://127.0.0.1:8188
 STUDIO_INVOKE_BACKEND=http://127.0.0.1:9090
 STUDIO_SSH_HOST=gpu2-remote
 ```
+
+**Note GPU2** : le `crewai-engine` est déployable sur GPU2 via `services/crewai-engine/docker-compose.gpu2.yml` (port 8010, `network_mode: host`).
 
 Doc complète : [docs/api-config/SERVICES.md](docs/api-config/SERVICES.md) section 11b.
 
@@ -122,23 +106,6 @@ HYPERCLI_BASE_URL=https://api.hypercli.com/v1
 HYPERCLI_DEFAULT_MODEL=kimi-k2.6
 ```
 
-### Côté Next.js — client OpenAI-compatible
-
-```typescript
-// src/lib/llm/kimi.ts
-import OpenAI from "openai";
-
-export const kimi = new OpenAI({
-  apiKey: process.env.HYPERCLI_API_KEY!,
-  baseURL: process.env.HYPERCLI_BASE_URL!, // https://api.hypercli.com/v1
-});
-
-const response = await kimi.chat.completions.create({
-  model: process.env.HYPERCLI_DEFAULT_MODEL!, // kimi-k2.6
-  messages: [{ role: "user", content: "..." }],
-});
-```
-
 ### Côté moteur CrewAI Python — litellm via crewai.LLM
 
 ```python
@@ -155,52 +122,81 @@ llm = LLM(
 
 ### Embeddings
 
-Embeddings via Hypercli modèle `qwen3-embedding-4b` (endpoint OpenAI-compatible, champ `model`). Plus de dépendance `text-embedding-3-small` OpenAI pour le chemin nominal. Si Hypercli est indisponible et qu'un embedding est requis, marquer en TODO — ne pas réintroduire OpenAI par défaut.
+Embeddings via Hypercli modèle `qwen3-embedding-4b` (endpoint OpenAI-compatible, champ `model`). Ne pas réintroduire OpenAI par défaut.
 
 ### Modèles Hypercli disponibles
 
 `kimi-k2.6` · `kimi-k2.6-anthropic` · `kimi-k2.5` · `kimi-k2.5-anthropic` · `glm-5` · `minimax-m2.5` · `qwen3-embedding-4b`
 
-### Historique
-
-Hypercli avait été écarté en N-1 (empty-responses / 404 / timeouts observés sur le crew 8 agents séquentiels du Chief of Staff). Ré-adopté sur directive explicite — **surveiller la fiabilité du crew Chief of Staff** en production et consigner tout incident dans Langfuse.
-
 ### Règles strictes
 
-- **JAMAIS** hardcoder une clé API dans le code — toujours `process.env.X` (Next.js) ou `pydantic_settings` BaseSettings + `os.getenv()` (Python).
-- **JAMAIS** créer un client LLM sans passer par `src/lib/llm/` (factory centralisée côté TS).
+- **JAMAIS** hardcoder une clé API dans le code — toujours `pydantic_settings` BaseSettings + `os.getenv()`.
 - **JAMAIS** appeler un provider non listé sans validation explicite d'Adrien.
 - Tracer chaque run LLM (model, tokens, latency, cost) dans Langfuse via les vars `LANGFUSE_*`.
 
+## HEDGE — trading append-only
+
+Périmètre HEDGE ajouté pour le trading algorithmique. Règles non négociables :
+
+- **Append-only** : les tables `hedge_*` ne sont jamais UPDATE/DELETE — insert seul autorisé (RLS enforced).
+- **No-trade-by-default** : `execution-engine` démarre en `dry_run=true` ; le mode live requiert flag explicite + HMAC validé.
+- **Kill switches** : `risk-engine` expose `/kill` (arrêt immédiat) et `/pause` (gel des ordres) sans auth pour réactivité maximale en local.
+- **17 tables `hedge_*`** dans Supabase (liste dans `README-HEDGE.md`). Toute nouvelle table DOIT respecter la convention append-only et avoir une RLS policy.
+- Fichiers clés : `.env.hedge`, `docker-compose.hedge.yml`, `README-HEDGE.md`.
+
+Boot HEDGE local :
+```bash
+docker compose -f docker-compose.hedge.yml up
+```
+
+## Webhooks Cortex
+
+Le dispatcher de webhooks Helm→Cortex est implémenté côté `hive-front-swarms` (TS, hors ce repo). La validation inbound côté Python (HMAC + idempotency key) n'est **pas encore implémentée** — TODO prioritaire avant prod Cortex.
+
 ## Commandes
 
-- `npm run dev` — Next dev sur port 3333
-- `npm run build` — build prod
-- `npm run lint` — ESLint
-- `npm run electron:dev` — Electron desktop (après scaffold `/electron`)
-- `/dev-adrien` — kill total + relance dev + ouvre Chrome
+Boot créwAI local :
+```bash
+cd services/crewai-engine
+uv sync
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+Boot HEDGE local :
+```bash
+docker compose -f docker-compose.hedge.yml up
+```
+
+Déploiement GPU2 (crewai-engine) :
+```bash
+docker compose -f services/crewai-engine/docker-compose.gpu2.yml up -d
+```
+
+Doc CrewAI : `docs/crewai/` (00-index + 8 sections, ~6600 lignes) — à lire avant tout choix d'API.
+
+## Déploiement
+
+| Target | Config | Port | Notes |
+|---|---|---|---|
+| Railway | auto (nixpacks) | 8000 | `crewai-engine` — cold start 30s, `AbortSignal.timeout(30s)` côté front |
+| GPU2 | `docker-compose.gpu2.yml` | 8010 | `network_mode: host`, restart unless-stopped |
 
 ## Conventions
 
-- Pas de magic numbers. Tout via `.env.local` ou `config/`.
+- Pas de magic numbers. Tout via `.env.local` / `.env.hedge` ou `config/`.
 - **RLS Supabase activée par défaut** sur toutes les tables — toute nouvelle table DOIT avoir une policy (voir [supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql) pour le pattern).
+- Tables HEDGE : **append-only** — aucun UPDATE/DELETE permis, enforced par RLS.
 - Tokens OAuth chiffrés avec `TOKEN_ENCRYPTION_KEY` avant insertion DB.
-- Tous les secrets dans `.env.local` (gitignored) et `docs/api-config/SERVICES.md` (gitignored).
+- Tous les secrets dans `.env.local` / `.env.hedge` (gitignored) et `docs/api-config/SERVICES.md` (gitignored).
 
 ## Référentiels
 
 - Services & API keys : [docs/api-config/SERVICES.md](docs/api-config/SERVICES.md) *(gitignored)*
 - Variables locales : [.env.local](.env.local) *(gitignored)*
-
-## Dashboard de référence
-
-Le UI du dashboard est calé sur le template visuel :
-`/Users/adrienbeyondcrypto/Dev/hearst-os/docs/visual/dashboard-template.html`
-
-Adrien peut modifier ce fichier à tout moment — `/setup` prend toujours la dernière version au moment de l'invocation.
+- Agent de référence : `~/.claude/agents/agent-swarms.md` (452 lignes, source de vérité étendue)
 
 ## URL & dashboards
 
 - Supabase : https://app.supabase.com/project/fxeibmjebvxtoazuyyvz
 - Railway : https://railway.app/project/693c476c-3d0c-4213-8088-63018863fa5d
-- Vercel : https://vercel.com/hearst-corporation/myswarms
+- Vercel `hearst-corporation/myswarms` : déploiement historique du front archivé — référence uniquement
