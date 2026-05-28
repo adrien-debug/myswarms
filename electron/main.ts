@@ -352,6 +352,17 @@ async function bootLocal() {
   }
   localBootStarted = true;
   store.set("env", "local");
+
+  // HIVE_DEV_BYPASS=1 : skip spawn engine + front, load directement la window
+  // sur un serveur dev démarré en externe (npm run dev:front sur :3333).
+  if (process.env.HIVE_DEV_BYPASS === "1") {
+    console.log("[boot] HIVE_DEV_BYPASS=1 → skip engine+front, load direct http://localhost:3333");
+    sendBootStatus("Bypass dev : connexion au front externe…");
+    splashWindow?.close();
+    createMainWindow("local");
+    return;
+  }
+
   ensureLogs();
 
   const repoRoot = resolveRepoRoot();

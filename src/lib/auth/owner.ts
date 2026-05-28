@@ -38,6 +38,19 @@ export class OwnerAuthError extends Error {
  * Signature : Promise<string | null> — inchangée.
  */
 export async function getOwnerId(): Promise<string | null> {
+  // Dev-only bypass : DEV_BYPASS_AUTH=true + NODE_ENV != "production"
+  // retourne un UUID stub (overridable via DEV_BYPASS_OWNER_ID) pour skipper
+  // toute la chaîne d'auth Supabase. Fermé automatiquement en prod.
+  if (
+    process.env.DEV_BYPASS_AUTH === "true" &&
+    process.env.NODE_ENV !== "production"
+  ) {
+    return (
+      process.env.DEV_BYPASS_OWNER_ID ??
+      "00000000-0000-0000-0000-000000000000"
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

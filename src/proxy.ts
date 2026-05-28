@@ -13,6 +13,15 @@ const PUBLIC_PATHS = ["/login", "/api/health", "/api/system/status"];
  * Pattern officiel @supabase/ssr middleware Next.js App Router.
  */
 async function updateSession(request: NextRequest): Promise<NextResponse> {
+  // Dev-only bypass : DEV_BYPASS_AUTH=true + NODE_ENV != "production"
+  // skip toute la session Supabase. Fermé automatiquement en prod.
+  if (
+    process.env.DEV_BYPASS_AUTH === "true" &&
+    process.env.NODE_ENV !== "production"
+  ) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
