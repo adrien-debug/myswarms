@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hedge.strategy_request.v1",
+  "title": "HEDGE StrategyRequest",
+  "type": "object",
+  "required": ["request_id", "tenant_id", "user_id", "intent_type", "raw_intent", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "request_id": { "type": "string", "format": "uuid" },
+    "tenant_id":  { "type": "string", "format": "uuid" },
+    "user_id":    { "type": "string", "format": "uuid" },
+    "intent_type": { "enum": ["market_query", "strategy_intent", "manual_trade"] },
+    "raw_intent": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "normalized": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "asset":      { "type": "string" },
+        "quote":      { "type": "string", "default": "USDT" },
+        "venue_hint": { "enum": ["hyperliquid", "binance", "bybit", "any"] },
+        "direction":  { "enum": ["long", "short", "neutral", "auto"] },
+        "horizon":    { "enum": ["scalp", "intraday", "swing", "position"] },
+        "timeframe":  { "enum": ["1m", "5m", "15m", "1h", "4h", "1d"] },
+        "objective":  { "enum": ["alpha", "hedge", "analysis"] },
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_notional_usd": { "type": "number", "minimum": 0 },
+            "max_leverage":     { "type": "number", "minimum": 1, "maximum": 50 },
+            "stop_loss_pct":    { "type": "number", "minimum": 0, "maximum": 0.5 },
+            "no_overnight":     { "type": "boolean", "default": false }
+          }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "portfolio_snapshot_id": { "type": "string", "format": "uuid" },
+        "session_id":            { "type": "string", "format": "uuid" }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

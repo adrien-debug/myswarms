@@ -119,7 +119,7 @@ def _is_auth_error(exc: Exception) -> bool:
     """
     # FIX B — composio_client stainless-generated exceptions (401 / 403)
     try:
-        from composio_client._exceptions import (  # type: ignore[import-untyped]
+        from composio_client._exceptions import (  # type: ignore[import-untyped] -- package sans stubs mypy
             AuthenticationError as _CCAuth,
             PermissionDeniedError as _CCPerm,
         )
@@ -130,7 +130,7 @@ def _is_auth_error(exc: Exception) -> bool:
 
     # composio high-level SDK exceptions
     try:
-        from composio.exceptions import ApiKeyError, HTTPError  # type: ignore[import-untyped]
+        from composio.exceptions import ApiKeyError, HTTPError  # type: ignore[import-untyped] -- package sans stubs mypy
         if isinstance(exc, ApiKeyError):
             return True
         if isinstance(exc, HTTPError) and exc.status_code in (401, 403):
@@ -280,8 +280,8 @@ def get_composio_tools_for_toolkits(toolkits: list[str]) -> list:
 
     # --- Import guard ---------------------------------------------------------
     try:
-        from composio import Composio, SESSION_PRESET_DIRECT_TOOLS  # type: ignore[import-untyped]
-        from composio_crewai import CrewAIProvider  # type: ignore[import-untyped]
+        from composio import Composio, SESSION_PRESET_DIRECT_TOOLS  # type: ignore[import-untyped] -- package sans stubs mypy
+        from composio_crewai import CrewAIProvider  # type: ignore[import-untyped] -- package sans stubs mypy
     except ImportError:
         logger.warning(
             "[COMPOSIO_DOWN] composio / composio-crewai not installed — "

@@ -19,10 +19,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/crews/chief-of-staff")
 
-# WARN: in-memory single-process store.
-# Persistence Supabase pas encore branchée (V1 squelette).
-# Si Railway scale > 1 worker, runs créés sur worker A invisibles sur worker B.
-# Mitigation actuelle : Railway start avec --workers 1 (default uvicorn).
+# Cache process éphémère — lookup O(1) sans round-trip Supabase pour le worker
+# qui a créé le run. Source de vérité : table chief_run_log via run_store
+# (save_run au kickoff, update_run à chaque transition success/timeout/cancel/failure).
+# Couverture partielle du multi-worker :
+#   - POD RESTART et CROSS-WORKER : fallback run_store.get_run() si
+#     _runs.get(kid) retourne None — couvert.
+#   - NON COUVERT : si le worker propriétaire a le run en cache avec
+#     status=running ET que cleanup_stale_runs (run_store.py) a marqué la
+#     ligne DB failed, divergence cache/DB jusqu'au prochain restart ou
+#     transition d'état explicite.
+# Mémoire — aucune purge active sur _runs (cleanup_stale_runs n'agit que sur
+# la DB). Sur uptime > 7 j : ~100 k entrées possibles (~100 MB si
+# state_payload grossit). Surveiller la mémoire process.
 _runs: dict[str, dict[str, Any]] = {}
 
 # Strong references to background asyncio tasks — prevents silent GC-driven cancellation.

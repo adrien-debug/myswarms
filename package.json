@@ -1,91 +1,27 @@
 {
-  "name": "myswarms",
-  "version": "0.1.0",
+  "name": "hive-engine",
+  "version": "0.2.0",
+  "description": "CrewAI orchestration backend — microservice Python FastAPI",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3333",
-    "build": "next build",
-    "start": "next start -p 3333",
-    "lint": "eslint",
-    "test": "vitest run",
-    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3333 && npm run electron:start\"",
-    "electron:assets": "mkdir -p dist-electron && cp electron/splash.html dist-electron/splash.html",
-    "electron:start": "tsc -p electron && npm run electron:assets && electron .",
-    "electron:build": "tsc -p electron && npm run electron:assets && electron-builder",
-    "electron:test": "playwright test electron/__tests__",
-    "electron:publish": "tsc -p electron && npm run electron:assets && electron-builder --publish always"
+    "dev": "cd services/crewai-engine && uvicorn src.main:app --reload --port 8000",
+    "test": "cd services/crewai-engine && pytest",
+    "deploy:check": "cd services/crewai-engine && curl -s https://crewai-engine-myswarms.up.railway.app/health"
   },
-  "dependencies": {
-    "@hearst/cockpit-shell": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation/hub — Hearst-Hub/packages/cockpit-shell/hearst-cockpit-shell-0.1.0.tgz",
-    "@hearst/hub-sdk": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation/hub — Hearst-Hub/packages/hub-sdk/hearst-hub-sdk-0.1.0.tgz",
-    "@hookform/resolvers": "^5.2.2",
-    "@sentry/nextjs": "^10.53.1",
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.0",
-    "dompurify": "^3.2.0",
-    "electron-store": "^11.0.2",
-    "electron-updater": "^6.8.3",
-    "next": "16.2.6",
-    "openai": "^6.38.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-hook-form": "^7.76.0",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.60.0",
-    "@tailwindcss/postcss": "^4",
-    "@types/dompurify": "^3.2.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^4.1.6",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "electron": "^42.1.0",
-    "electron-builder": "^26.8.1",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.1.6",
-    "wait-on": "^9.0.10"
-  },
-  "main": "dist-electron/main.js",
-  "build": {
-    "appId": "com.myswarms.desktop",
-    "productName": "MySwarms",
-    "files": [
-      "dist-electron/**/*",
-      ".next/**/*",
-      "public/**/*",
-      "package.json"
+  "_archive": {
+    "frontNextJs": ".archive/front-nextjs-2026-05-20/",
+    "movedAt": "2026-05-20T09:30:00Z",
+    "movedReason": "Features portées vers helm — hearst-os (admin/orchestrator/swarms + crews)",
+    "ported_pages": [
+      "/swarms → helm /admin/orchestrator/swarms",
+      "/swarms/new → helm /admin/orchestrator/swarms/new",
+      "/swarms/[id]+edit+runs → helm /admin/orchestrator/swarms/[id]+edit+runs",
+      "/crews/chief-of-staff/* → helm /admin/orchestrator/crews/chief/*",
+      "/tools → helm /admin/orchestrator/tools"
     ],
-    "directories": {
-      "output": "dist"
-    },
-    "mac": {
-      "category": "public.app-category.productivity",
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "identity": null,
-      "notarize": false
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ]
-    },
-    "publish": null
+    "ported_components": [
+      "components/swarms/* (15 components)",
+      "components/crews/* (5 components)"
+    ]
   }
 }

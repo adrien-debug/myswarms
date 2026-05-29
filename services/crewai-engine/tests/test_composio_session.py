@@ -57,15 +57,15 @@ def _make_composio_module(
 ) -> types.ModuleType:
     """Build a fake 'composio' module with Composio class + SESSION_PRESET_DIRECT_TOOLS."""
     mod = types.ModuleType("composio")
-    mod.Composio = MockComposio  # type: ignore[attr-defined]
-    mod.SESSION_PRESET_DIRECT_TOOLS = session_preset  # type: ignore[attr-defined]
+    mod.Composio = MockComposio  # type: ignore[attr-defined] -- ModuleType dynamique, pas de stubs
+    mod.SESSION_PRESET_DIRECT_TOOLS = session_preset  # type: ignore[attr-defined] -- ModuleType dynamique, pas de stubs
     return mod
 
 
 def _make_composio_crewai_module(MockCrewAIProvider: MagicMock) -> types.ModuleType:
     """Build a fake 'composio_crewai' module with CrewAIProvider class."""
     mod = types.ModuleType("composio_crewai")
-    mod.CrewAIProvider = MockCrewAIProvider  # type: ignore[attr-defined]
+    mod.CrewAIProvider = MockCrewAIProvider  # type: ignore[attr-defined] -- ModuleType dynamique, pas de stubs
     return mod
 
 

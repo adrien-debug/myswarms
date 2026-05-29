@@ -1,0 +1,83 @@
+# HEDGE Edge v2 — local dev stack.
+#
+# Brings up the 4 Python services. Cockpit/Core (Next.js) runs separately
+# via `npm run dev` in apps/hedge-core.
+#
+# All services share the same Supabase project — no local Postgres needed.
+# Each polls hedge_run_jobs via FOR UPDATE SKIP LOCKED.
+
+services:
+
+  market-data-service:
+    build:
+      context: .
+      dockerfile: services/market-data-service/Dockerfile
+    container_name: hedge-market-data
+    env_file:
+      - .env.hedge
+    environment:
+      - SERVICE_NAME=market-data-service
+      - INGEST_PAIRS=hyperliquid:BTC-USD,binance:BTCUSDT
+    ports:
+      - "8004:8004"
+    restart: unless-stopped
+
+  swarm-orchestrator:
+    build:
+      context: .
+      dockerfile: services/swarm-orchestrator/Dockerfile
+    container_name: hedge-swarm
+    env_file:
+      - .env.hedge
+    environment:
+      - SERVICE_NAME=swarm-orchestrator
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on: []
+
+  strategy-builder:
+    build:
+      context: .
+      dockerfile: services/strategy-builder/Dockerfile
+    container_name: hedge-builder
+    env_file:
+      - .env.hedge
+    environment:
+      - SERVICE_NAME=strategy-builder
+    ports:
+      - "8003:8003"
+    restart: unless-stopped
+
+  risk-engine:
+    build:
+      context: .
+      dockerfile: services/risk-engine/Dockerfile
+    container_name: hedge-risk
+    env_file:
+      - .env.hedge
+    environment:
+      - SERVICE_NAME=risk-engine
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  execution-engine:
+    build:
+      context: .
+      dockerfile: services/execution-engine/Dockerfile
+    container_name: hedge-exec
+    env_file:
+      - .env.hedge
+    environment:
+      - SERVICE_NAME=execution-engine
+      - DRY_RUN=true               # adapter-level dry_run
+      - HEDGE_MODE=dry_run         # SHADOW. paper | live require explicit allowlists.
+      - RECONCILE_INTERVAL_SECONDS=30
+      - DEADMAN_INTERVAL_SECONDS=20
+      - DEADMAN_TIMEOUT_SECONDS=60
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+    depends_on:
+      - market-data-service

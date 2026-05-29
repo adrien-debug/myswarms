@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hedge.sized_order.v1",
+  "title": "HEDGE SizedOrder",
+  "description": "Canonical order produced by Risk Engine, consumed by Execution Engine.",
+  "type": "object",
+  "required": [
+    "venue", "symbol", "side", "type", "size",
+    "time_in_force", "reduce_only", "client_order_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "venue":         { "enum": ["hyperliquid", "binance", "bybit"] },
+    "symbol":        { "type": "string", "minLength": 1, "maxLength": 32 },
+    "side":          { "enum": ["buy", "sell"] },
+    "type":          { "enum": ["market", "limit", "stop", "stop_limit"] },
+    "size":          { "type": "number", "exclusiveMinimum": 0 },
+    "limit_price":   { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "stop_price":    { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "time_in_force": { "enum": ["IOC", "GTC", "FOK"] },
+    "reduce_only":   { "type": "boolean" },
+    "client_order_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$",
+      "description": "sha256(request_id || ':' || leg_index)[:32]"
+    },
+    "leverage":      { "type": "number", "minimum": 1, "maximum": 50 }
+  }
+}

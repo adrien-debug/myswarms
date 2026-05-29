@@ -26,7 +26,7 @@ def _get_client():
         logger.warning("Supabase not configured — run logs will be in-memory only")
         return None
     try:
-        from supabase import create_client  # type: ignore[import-untyped]
+        from supabase import create_client  # type: ignore[import-untyped] -- supabase-py sans stubs mypy
         # Uses SUPABASE_SERVICE_ROLE_KEY which bypasses Row Level Security (RLS) entirely.
         # This client must never be used to serve browser-facing data directly.
         _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)

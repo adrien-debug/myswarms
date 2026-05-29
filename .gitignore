@@ -76,3 +76,15 @@ services/*/.venv/
 
 # Claude Code (config locale — settings, plans, worktrees)
 .claude/
+.playwright-mcp/
+login-with-nav.png
+
+# Archive front Next.js (lourd — dist/ 21 GB, node_modules)
+.archive/**/node_modules/
+.archive/**/dist/
+.archive/**/.next/
+docs/api-config/SERVICES.md
+docs/credentials.local.txt
+.hedge-admin-*.tmp
+.env.hedge
+.env.hedge.*

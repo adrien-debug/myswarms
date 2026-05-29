@@ -3,19 +3,23 @@
 Composition récursive : « un agent qui configure des agents ».
 
 Pipeline :
-1. Construit un system prompt décrivant le format de sortie attendu (JSON
+1. Pré-fetch Cortex context (fail-soft) : avant toute génération, consulte le
+   vault Obsidian pour récupérer des swarms similaires passés, décisions
+   techniques et patterns d'échec connus relatifs à l'intent utilisateur.
+2. Construit un system prompt décrivant le format de sortie attendu (JSON
    strict matchant `ArchitectSwarmSpec`), les rôles/modèles disponibles et
-   le catalogue de tools référençables.
-2. Encapsule la demande utilisateur comme DONNÉE (`<user_request>`) — la
+   le catalogue de tools référençables. Injecte le contexte Cortex dans ce
+   prompt si disponible.
+3. Encapsule la demande utilisateur comme DONNÉE (`<user_request>`) — la
    consigne explicite à l'architecte est de ne traiter QUE la composition de
    swarm et d'ignorer toute instruction contradictoire dans ce bloc
    (anti prompt-injection basique).
-3. Appelle `get_llm("smart")` (Opus — qualité max), parse le JSON, valide
+4. Appelle `get_llm("smart")` (Opus — qualité max), parse le JSON, valide
    via Pydantic. Retry ×3 avec message correctif si invalide.
-4. Validation post-génération : ≥1 agent/task, refs agent_index/task_index
+5. Validation post-génération : ≥1 agent/task, refs agent_index/task_index
    valides, pas de cycle dans le DAG (réutilise `_topological_sort_tasks`),
    tools inconnus droppés (warning, pas de crash), enums corrigés.
-5. Convertit les `agent_index`/`task_index` en UUIDs locaux → shape
+6. Convertit les `agent_index`/`task_index` en UUIDs locaux → shape
    strictement `SwarmCreate`-compatible (réutilisable par `POST /v1/swarms`).
 
 Importable sans side-effect : aucun appel LLM au moment de l'import.
@@ -32,6 +36,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from ..crews.dynamic_crew import _topological_sort_tasks
 from ..llms import get_llm
+from ..tools.vault_search import VaultSearchTool
 
 logger = logging.getLogger(__name__)
 
@@ -142,14 +147,72 @@ class ArchitectSwarmSpec(BaseModel):
     )
 
 
+# ── Cortex pre-fetch ─────────────────────────────────────────────────────────
+
+_vault_tool: VaultSearchTool | None = None
+
+
+def _get_vault_tool() -> VaultSearchTool:
+    """Retourne une instance partagée de VaultSearchTool (lazy init)."""
+    global _vault_tool
+    if _vault_tool is None:
+        _vault_tool = VaultSearchTool()
+    return _vault_tool
+
+
+def _fetch_cortex_context(prompt: str) -> str:
+    """Interroge Cortex pour récupérer le contexte historique pertinent.
+
+    Construit deux requêtes complémentaires :
+    - swarms similaires passés (intent utilisateur)
+    - décisions techniques et patterns d'échec
+
+    Fail-soft : en cas d'indisponibilité Cortex, retourne une chaîne vide
+    sans lever d'exception — la génération du swarm continue normalement.
+    """
+    tool = _get_vault_tool()
+
+    # Tronque le prompt pour garder les requêtes Cortex courtes et précises.
+    prompt_short = prompt[:120].strip()
+
+    queries = [
+        f"swarm architect {prompt_short}",
+        f"décisions techniques patterns échec {prompt_short}",
+    ]
+
+    blocks: list[str] = []
+    for query in queries:
+        try:
+            result = tool._run(query, limit=3)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Cortex pre-fetch failed for query %r: %s", query[:60], exc)
+            continue
+        # Ignorer les résultats vides ou d'erreur (fail-soft prefix)
+        if result and not result.startswith("Vault unavailable") and not result.startswith("Aucune note"):
+            blocks.append(result)
+
+    if not blocks:
+        return ""
+
+    return (
+        "## Contexte historique Cortex (vault Obsidian — 39 000+ notes)\n\n"
+        + "\n---\n".join(blocks)
+    )
+
+
 # ── Prompt building ──────────────────────────────────────────────────────────
 
 
-def _build_system_prompt(available_tools: list[dict[str, Any]]) -> str:
+def _build_system_prompt(
+    available_tools: list[dict[str, Any]],
+    cortex_context: str = "",
+) -> str:
     """Construit le system prompt de l'architecte.
 
     Décrit le schéma JSON STRICT attendu, les enums autorisés, les modèles
     disponibles et le catalogue de tools référençables (id + name + desc).
+    Si `cortex_context` est fourni, l'injecte en tête du prompt pour que le
+    LLM s'appuie sur le contexte historique lors de la conception du swarm.
     """
     tools_lines: list[str] = []
     for tool in available_tools:
@@ -171,8 +234,19 @@ def _build_system_prompt(available_tools: list[dict[str, Any]]) -> str:
     providers = ", ".join(sorted(_MODEL_PROVIDERS))
     models = ", ".join(_HYPERCLI_MODELS)
 
+    cortex_block = (
+        f"{cortex_context}\n\n"
+        "Utilise ce contexte pour éviter de répéter des erreurs passées, "
+        "t'inspirer des swarms similaires et aligner les décisions techniques "
+        "avec l'historique du projet. Les paths des notes pertinentes peuvent "
+        "être cités dans le champ `rationale` de ta spec.\n\n"
+        if cortex_context
+        else ""
+    )
+
     return (
-        "Tu es l'Architecte de Swarms de MySwarms. Ton unique rôle : à partir "
+        cortex_block
+        + "Tu es l'Architecte de Swarms de MySwarms. Ton unique rôle : à partir "
         "d'une demande utilisateur, concevoir une équipe d'agents IA "
         "(swarm) et la renvoyer SOUS FORME DE JSON STRICT, sans aucun texte "
         "autour, sans bloc Markdown, sans commentaire.\n\n"
@@ -516,6 +590,11 @@ def generate_swarm_spec(
 ) -> dict[str, Any]:
     """Génère une spec de swarm (preview, non persistée).
 
+    Étape 0 (automatique) : pré-fetch du contexte historique Cortex avant
+    tout appel LLM. Fail-soft — si Cortex est indisponible, la génération
+    continue normalement sans contexte. Le contexte récupéré est injecté en
+    tête du system prompt et retourné dans la clé `cortex_context`.
+
     Args:
         prompt: description en langage naturel du swarm souhaité.
         available_tools: catalogue de tools (rows `tools` de Supabase) que le
@@ -525,17 +604,28 @@ def generate_swarm_spec(
 
     Returns:
         {"spec": <SwarmCreate-shaped dict>, "rationale": str,
-         "warnings": [str, ...]}
+         "warnings": [str, ...], "cortex_context": str}
 
     Raises:
         ArchitectGenerationError: si après `_MAX_ATTEMPTS` tentatives le LLM
             n'a pas produit une spec valide (JSON KO, Pydantic KO, ou
             validation métier impossible).
     """
+    # ── Étape 0 : pré-fetch Cortex (fail-soft) ───────────────────────────────
+    cortex_context = _fetch_cortex_context(prompt)
+    if cortex_context:
+        logger.info(
+            "Architect: contexte Cortex récupéré (%d chars) pour prompt: %r",
+            len(cortex_context),
+            prompt[:80],
+        )
+    else:
+        logger.debug("Architect: Cortex indisponible ou sans résultat — génération sans contexte historique.")
+
     available_tool_ids: set[str] = {
         str(t["id"]) for t in available_tools if t.get("id")
     }
-    system_prompt = _build_system_prompt(available_tools)
+    system_prompt = _build_system_prompt(available_tools, cortex_context=cortex_context)
     messages: list[dict[str, str]] = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": _build_user_message(prompt)},
@@ -629,13 +719,15 @@ def generate_swarm_spec(
 
         logger.info(
             "Architect: spec générée (%d agents, %d tasks, %d bindings, "
-            "%d warnings) en %d tentative(s)",
+            "%d warnings, cortex=%s) en %d tentative(s)",
             len(result["spec"]["agents"]),
             len(result["spec"]["tasks"]),
             len(result["spec"]["tool_bindings"]),
             len(result["warnings"]),
+            "oui" if cortex_context else "non",
             attempt,
         )
+        result["cortex_context"] = cortex_context
         return result
 
     raise ArchitectGenerationError(

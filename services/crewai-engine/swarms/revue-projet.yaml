@@ -1,0 +1,66 @@
+# Swarm: revue-projet
+# Déclenché par StaleWatcher Cortex quand un projet est inactif depuis 60+ jours.
+#
+# DB (Supabase fxeibmjebvxtoazuyyvz) — UUIDs créés le 2026-05-20 :
+#   swarms.id      : 48b401ac-3a11-43bb-b032-c663203cd402
+#   swarm_agents.id: fba4e456-06a0-4273-b20f-9f676e1cb22f
+#   swarm_tasks.id : b2cb6351-d1d1-41d7-89bd-2707365d467a
+#   owner_id       : e0a983da-536f-4dad-a205-861acbae9468 (adrien@hearstcorporation.io)
+#
+# Lookup : le moteur Hive accepte le slug "revue-projet" (name) OU l'UUID.
+# Le champ swarms.name est utilisé comme slug par Cortex via kickoffSwarm("revue-projet", ...).
+
+slug: revue-projet
+name: "revue-projet"
+description: |
+  Swarm déclenché automatiquement par le StaleWatcher Cortex quand un
+  projet est inactif depuis 60+ jours. Analyse l'état du projet via
+  vault_search, propose archivage, relance ou skip avec justification.
+
+config:
+  trigger_source: cortex-stale-watcher
+  min_inactivity_days: 60
+  process: sequential
+  verbose: false
+  cortex_integration:
+    kickoff_key: revue-projet
+    input_params:
+      - project
+      - vault_path
+      - triggered_by
+
+agents:
+  - id: fba4e456-06a0-4273-b20f-9f676e1cb22f
+    name: project_analyst
+    role: analyst
+    model_provider: anthropic
+    model_name: claude-sonnet-4-5
+    temperature: 0.3
+    max_tokens: 1024
+    system_prompt: |
+      Tu es un coach productivité expert. Tu consultes l'historique d'un projet
+      via vault_search, identifies les dernières activités, et proposes l'action
+      la plus pertinente : archive (vraiment mort), relance (potentiel mais oublié),
+      ou skip (pas une vraie inactivité). Tu es factuel, concis, et tu justifies
+      ton choix en 1 phrase.
+
+tasks:
+  - id: b2cb6351-d1d1-41d7-89bd-2707365d467a
+    name: analyse_projet_stale
+    agent: project_analyst
+    description: |
+      Le projet {project} est inactif depuis 60+ jours.
+      Path vault : {vault_path}
+      Déclenché par : {triggered_by}
+
+      Analyse :
+      1. Cherche dans le vault les dernières mentions du projet
+      2. Évalue : est-ce vraiment mort, en pause, ou actif ailleurs ?
+      3. Recommande UNE action concrète
+    expected_output: |
+      Markdown 5 bullets max :
+      - **Statut** : <archive|relance|skip|inconnu>
+      - **Raison** : <1 phrase>
+      - **Action proposée** : <1 phrase actionnable>
+      - **Confiance** : <faible|moyenne|élevée>
+      - **Source(s) vault consultées** : <paths>

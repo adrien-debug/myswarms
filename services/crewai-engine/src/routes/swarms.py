@@ -634,6 +634,12 @@ async def kickoff_swarm_endpoint(
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
+    # BUGFIX : `swarm_id` reçu peut être un SLUG (ex "revue-projet"). get_swarm
+    # le résout, mais swarm_runs.swarm_id est une colonne UUID (FK) → insérer le
+    # slug fait échouer save_swarm_run silencieusement (run jamais persisté, 202
+    # mais introuvable au polling). On utilise l'UUID résolu partout en aval.
+    resolved_swarm_id = str(loaded.get("swarm", {}).get("id") or swarm_id)
+
     # F3 fix : refuser le kickoff sur un swarm archivé (is_active=false).
     # Un swarm archivé ne doit plus être déclenchable même via API directe.
     if not loaded.get("swarm", {}).get("is_active", True):
@@ -652,7 +658,7 @@ async def kickoff_swarm_endpoint(
     run_id = str(uuid4())
     swarm_store.save_swarm_run(
         run_id=run_id,
-        swarm_id=swarm_id,
+        swarm_id=resolved_swarm_id,
         trigger=request.trigger,
         status="running",
         inputs_json=request.inputs or {},
@@ -663,7 +669,7 @@ async def kickoff_swarm_endpoint(
 
     task = asyncio.create_task(
         _execute_dynamic_flow_background(
-            swarm_id=swarm_id,
+            swarm_id=resolved_swarm_id,
             run_id=run_id,
             trigger=request.trigger,
             inputs=request.inputs or {},
@@ -675,7 +681,7 @@ async def kickoff_swarm_endpoint(
 
     return {
         "run_id": run_id,
-        "swarm_id": swarm_id,
+        "swarm_id": resolved_swarm_id,
         "status": "running",
     }
 
@@ -694,7 +700,11 @@ def status_swarm_run_endpoint(
     run = swarm_store.get_swarm_run(str(run_id), owner_id=owner_id)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
-    if str(run.get("swarm_id")) != swarm_id:
+    # `swarm_id` de l'URL peut être un slug (ex "revue-projet"). On le résout en
+    # UUID pour le scoping (le run stocke l'UUID). Sinon le poll par slug 404.
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    resolved_swarm_id = str(loaded.get("swarm", {}).get("id")) if loaded else swarm_id
+    if str(run.get("swarm_id")) != resolved_swarm_id:
         # Scoping strict : on n'expose pas les runs d'un autre swarm.
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found for swarm {swarm_id}")
     return _shape_run_response(run)

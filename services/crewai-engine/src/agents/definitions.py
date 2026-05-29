@@ -8,6 +8,7 @@ Each kickoff receives fresh Agent instances → no shared state between concurre
 from crewai import Agent
 
 from ..llms import get_llm
+from ..tools.vault_search import VaultSearchTool
 
 # Guard: import Agent 2 dependencies gracefully so this module stays importable
 # even when Agent 2's files don't exist yet (parallel development).
@@ -15,7 +16,7 @@ try:
     from ..composio_session import get_composio_tools_for_toolkits
     _composio_available = True
 except ImportError:
-    def get_composio_tools_for_toolkits(toolkits: list) -> list:  # type: ignore[misc]
+    def get_composio_tools_for_toolkits(toolkits: list) -> list:  # type: ignore[misc] -- stub fallback redéfinit symbole importé
         return []
     _composio_available = False
 
@@ -290,6 +291,7 @@ def create_agents() -> dict[str, Agent]:
         role=MEMORY_ROLE,
         goal=MEMORY_GOAL,
         backstory=MEMORY_BACKSTORY,
+        tools=[VaultSearchTool()],
         allow_delegation=False,
         llm=get_llm("balanced"),
         verbose=True,

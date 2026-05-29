@@ -29,4 +29,6 @@ def get_llm(tier: ModelTier = "balanced") -> LLM:
         model=mapping[tier],
         base_url=settings.HYPERCLI_BASE_URL,
         api_key=settings.HYPERCLI_API_KEY,
+        timeout=settings.LLM_REQUEST_TIMEOUT_SECONDS,
+        max_retries=settings.LLM_MAX_RETRIES,
     )

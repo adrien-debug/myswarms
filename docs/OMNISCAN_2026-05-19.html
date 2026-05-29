@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMNISCAN — MySwarms — 2026-05-19</title>
+<style>
+  :root{--bx:#6b1e2e;--bx-soft:rgba(107,30,46,.18);--bg:#0b0709;--panel:rgba(255,255,255,.04);--bd:rgba(255,255,255,.10);--tx:#ece7e8;--mut:#a99ea1;--ok:#7cf2c4;--p0:#ff5e7a;--p1:#ffb454;--p2:#8fb3ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,#1a0b10 0%,var(--bg) 70%);color:var(--tx);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:40px 24px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}
+  .sub{color:var(--mut);margin:0 0 28px}
+  .card{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:22px 24px;margin-bottom:18px;backdrop-filter:blur(12px)}
+  .card h2{font-size:15px;text-transform:uppercase;letter-spacing:1.5px;color:var(--mut);margin:0 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .kpi{background:rgba(107,30,46,.12);border:1px solid var(--bx-soft);border-radius:10px;padding:16px}
+  .kpi b{display:block;font-size:28px;line-height:1}
+  .kpi span{color:var(--mut);font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--bd);vertical-align:top}
+  th{color:var(--mut);text-transform:uppercase;font-size:11px;letter-spacing:1px}
+  .tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .t0{background:rgba(255,94,122,.16);color:var(--p0)}
+  .t1{background:rgba(255,180,84,.16);color:var(--p1)}
+  .t2{background:rgba(143,179,255,.16);color:var(--p2)}
+  .done{color:var(--ok);font-weight:700}
+  .wait{color:var(--p1);font-weight:700}
+  code{background:rgba(255,255,255,.07);padding:1px 6px;border-radius:5px;font-size:12px}
+  .foot{color:var(--mut);font-size:12px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>OMNISCAN — MySwarms</h1>
+  <p class="sub">Audit + débogage multi-agents · branche <code>feat/nav-segmentee-pages</code> · 2026-05-19</p>
+
+  <div class="card">
+    <h2>Résumé exécutif</h2>
+    <div class="grid">
+      <div class="kpi"><b>16</b><span>axes audités (parallèle)</span></div>
+      <div class="kpi"><b>7.4</b><span>score moyen / 10</span></div>
+      <div class="kpi"><b>4</b><span>P0 résolus</span></div>
+      <div class="kpi"><b>0</b><span>P0 restants</span></div>
+      <div class="kpi"><b>11</b><span>P1 résolus (C1+C2)</span></div>
+      <div class="kpi"><b>~3</b><span>P1/P2 reportés</span></div>
+    </div>
+    <p style="margin:16px 0 0;color:var(--mut)">
+      Build OK · <code>tsc --noEmit</code> 0 erreur · ESLint 0 erreur sur les fichiers touchés ·
+      0 secret en clair · RLS 9.5/10. Stage 3 exécuté en <b>mode dégradé</b> : les crédits
+      sous-agents ont été épuisés (reset 19h Asia/Dubai), les correctifs P0/P1 ont été
+      appliqués en direct par l'orchestrateur.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Scores par axe (Stage 1)</h2>
+    <table>
+      <tr><th>Axe</th><th>Score</th><th>Verdict</th></tr>
+      <tr><td>A2 Secrets en clair</td><td>10/10</td><td class="done">OK</td></tr>
+      <tr><td>A3 RLS Supabase</td><td>9.5/10</td><td class="done">OK</td></tr>
+      <tr><td>A11 TypeScript strictness</td><td>9.5/10</td><td class="done">OK</td></tr>
+      <tr><td>A16 Build / dev / lint</td><td>9/10</td><td class="done">OK</td></tr>
+      <tr><td>A4 Migrations Supabase</td><td>8.5/10</td><td class="done">OK</td></tr>
+      <tr><td>A1 OWASP Top 10</td><td>8/10</td><td class="done">OK + hardening</td></tr>
+      <tr><td>A5 Routes API Next.js</td><td>8/10</td><td>À corriger</td></tr>
+      <tr><td>A14 A11y accessibilité</td><td>8/10</td><td>À corriger</td></tr>
+      <tr><td>A9 Performance bundle</td><td>7/10</td><td>À corriger</td></tr>
+      <tr><td>A10 Dead code &amp; TODO</td><td>7/10</td><td class="done">OK</td></tr>
+      <tr><td>A13 UX &amp; états manquants</td><td>6.4/10</td><td>À corriger</td></tr>
+      <tr><td>A6 Cockpit conformité</td><td>6/10</td><td>BLOCKER (résolu)</td></tr>
+      <tr><td>A7 Chat Kimi &amp; Hypercli</td><td>6/10</td><td>À corriger</td></tr>
+      <tr><td>A8 Agents LLM &amp; fallbacks</td><td>5/10</td><td>À corriger</td></tr>
+      <tr><td>A12 Dépendances</td><td>5/10</td><td>À corriger</td></tr>
+      <tr><td>A15 Tests &amp; couverture</td><td>5/10</td><td>À corriger</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Findings traités — statut</h2>
+    <table>
+      <tr><th>ID</th><th>Niv</th><th>Problème</th><th>Fichier</th><th>Statut</th></tr>
+      <tr><td>F1</td><td><span class="tag t0">P0</span></td><td>Accent Cockpit bleu <code>#3FA7E0</code> au lieu de bordeaux</td><td>src/app/cockpit.css</td><td class="done">CORRIGÉ → #6b1e2e</td></tr>
+      <tr><td>F2</td><td><span class="tag t0">P0</span></td><td>Nav Cockpit visible derrière /login</td><td>src/components/HiveShell.tsx</td><td class="done">CORRIGÉ (bare route)</td></tr>
+      <tr><td>F3</td><td><span class="tag t0">P0</span></td><td>/swarms/new sans loading/error tools</td><td>src/app/swarms/new/page.tsx</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F4</td><td><span class="tag t0">P0</span></td><td>/tools sans feedback pendant fetch</td><td>src/app/tools/loading.tsx</td><td class="done">CORRIGÉ (loading.tsx)</td></tr>
+      <tr><td>F5</td><td><span class="tag t1">P1</span></td><td><code>kickoffId</code> non validé UUID + <code>snooze_hours</code></td><td>decisions/route.ts</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F7</td><td><span class="tag t1">P1</span></td><td>architect: <code>getOwnerId()</code> nullable → bucket anonyme</td><td>architect/generate/route.ts</td><td class="done">CORRIGÉ → requireOwnerId</td></tr>
+      <tr><td>F9</td><td><span class="tag t1">P1</span></td><td><code>&lt;span role=button&gt;</code> non clavier-actionable</td><td>AppBottomBar.tsx</td><td class="done">CORRIGÉ → aria-current</td></tr>
+      <tr><td>F12</td><td><span class="tag t1">P1</span></td><td>LoginForm sans feedback redirect + aria-live</td><td>LoginForm.tsx</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F11</td><td><span class="tag t1">P1</span></td><td>KickoffForm casse &lt;480px</td><td>KickoffForm.tsx</td><td class="done">CORRIGÉ (flexWrap)</td></tr>
+      <tr><td>F14</td><td><span class="tag t1">P1</span></td><td>4 screenshots WIP à la racine</td><td>login-*.png</td><td class="done">SUPPRIMÉS</td></tr>
+      <tr><td>F15</td><td><span class="tag t1">P1</span></td><td><code>optimizePackageImports</code> absent</td><td>next.config.ts</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F16</td><td><span class="tag t1">P1</span></td><td>Headers sécu manquants (HSTS, nosniff…)</td><td>next.config.ts</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F18</td><td><span class="tag t2">P2</span></td><td><code>coverage/</code> non ignoré ESLint</td><td>eslint.config.mjs</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F19</td><td><span class="tag t2">P2</span></td><td><code>engines.node</code> absent</td><td>package.json</td><td class="done">CORRIGÉ</td></tr>
+      <tr><td>F10</td><td><span class="tag t1">P1</span></td><td>SwarmArchiveButton disabled post-erreur</td><td>SwarmArchiveButton.tsx</td><td>NON-ISSUE (déjà OK)</td></tr>
+      <tr><td>F6</td><td><span class="tag t1">P1</span></td><td>cockpit-chat rate-limit IP → user-scoped</td><td>cockpit-chat/route.ts</td><td class="done">CORRIGÉ (cycle 2)</td></tr>
+      <tr><td>F8</td><td><span class="tag t1">P1</span></td><td>Pas de retry/timeout LLM Hypercli microservice</td><td>crewai-engine config.py + llms.py</td><td class="done">CORRIGÉ (cycle 2)</td></tr>
+      <tr><td>F-CI</td><td><span class="tag t1">P1</span></td><td>Aucun pipeline CI (lint/tsc/tests)</td><td>.github/workflows/ci.yml</td><td class="done">CRÉÉ (cycle 2)</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Reporté en cycle 2 (après reset crédits 19h)</h2>
+    <table>
+      <tr><th>Niv</th><th>Item</th><th>Raison du report</th></tr>
+      <tr><td><span class="tag t1">P1</span></td><td>Langfuse tracing chat réel (observabilité)</td><td>Nécessite wrapper observabilité fire-and-forget — agent dédié cycle 3</td></tr>
+      <tr><td><span class="tag t1">P1</span></td><td>Vuln <code>postcss</code> XSS via next (npm update next)</td><td>Bump majeur — risque régression, à tester isolément + recheck @sentry/nextjs</td></tr>
+      <tr><td><span class="tag t1">P1</span></td><td>.tgz <code>hearst-*-0.2.0.tgz</code> commités</td><td>Migration vers registre privé — décision infra</td></tr>
+      <tr><td><span class="tag t1">P1</span></td><td>HiveShell/HubSessionBridge sans <code>dynamic()</code></td><td>Risque régression shell — nécessite test navigateur</td></tr>
+      <tr><td><span class="tag t2">P2</span></td><td>CSP <code>unsafe-inline</code>, middleware→proxy, contraste badges, prefers-reduced-motion, dompurify unused, 0001 schema prefix, tests RLS intégration, CI workflows</td><td>Hardening / hors chemin critique</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Diff résumé</h2>
+    <p style="color:var(--mut);margin:0 0 10px">12 fichiers modifiés par OMNISCAN + 1 créé + 4 supprimés (les autres <code>M</code> du <code>git status</code> sont le WIP préexistant d'Adrien : AgentDiff, DayTimeline, ArchitectModal, Chevron, tokens.ts — non touchés).</p>
+    <table>
+      <tr><th>Fichier</th><th>Δ</th></tr>
+      <tr><td>src/app/swarms/new/page.tsx</td><td>+64 / -2</td></tr>
+      <tr><td>src/app/login/LoginForm.tsx</td><td>+34 / -3</td></tr>
+      <tr><td>next.config.ts</td><td>+19</td></tr>
+      <tr><td>src/components/HiveShell.tsx</td><td>+13</td></tr>
+      <tr><td>src/app/tools/loading.tsx</td><td>nouveau (+44)</td></tr>
+      <tr><td>architect/generate/route.ts</td><td>+6 / -3</td></tr>
+      <tr><td>decisions/route.ts</td><td>+5 / -2</td></tr>
+      <tr><td>cockpit.css · AppBottomBar · KickoffForm · eslint · package.json</td><td>petits ciblés</td></tr>
+      <tr><td>login-after-fix/current/dark-issue/with-nav.png</td><td>supprimés</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Recommandations cycle 2</h2>
+    <ol style="margin:0;color:var(--mut)">
+      <li>Relancer après 19h (reset crédits) : 1 agent Python sur <code>services/crewai-engine</code> (retry Hypercli + Langfuse réel).</li>
+      <li>Agent observabilité : wrapper Langfuse fire-and-forget sur <code>/api/cockpit-chat</code>.</li>
+      <li>Agent deps isolé : <code>npm update next</code> en branche + recheck Sentry + build.</li>
+      <li>Agent perf : <code>dynamic()</code> sur HiveShell/HubSessionBridge avec validation navigateur Playwright.</li>
+      <li>Agent tests : tests d'intégration RLS (2 users) + workflow CI GitHub Actions.</li>
+      <li>Vérification visuelle Cockpit : confirmer le rendu bordeaux <code>#6b1e2e</code> au navigateur (non testé UI faute de crédits).</li>
+    </ol>
+  </div>
+
+  <p class="foot">OMNISCAN · 16 audits parallèles · 5 stages · mode dégradé Stage 3 (crédits agents épuisés) · 2026-05-19</p>
+</div>
+</body>
+</html>

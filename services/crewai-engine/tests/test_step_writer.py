@@ -65,7 +65,7 @@ class TestStepWriterNonBlocking:
                 )
                 # append_run_step has NOT been called yet (worker is blocked).
                 calls_during_enqueue.append(
-                    swarm_store.append_run_step.called  # type: ignore[attr-defined]
+                    swarm_store.append_run_step.called  # type: ignore[attr-defined] -- MagicMock sans stubs mypy
                 )
                 # Release the gate so the worker can proceed.
                 gate.set()

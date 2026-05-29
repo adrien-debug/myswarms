@@ -1,6 +1,7 @@
 import hmac
 import logging
 import os
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -124,16 +125,26 @@ logger.info("CORS allowed origins: %s", _ALLOWED_ORIGINS)
 
 # Bearer auth middleware — all routes except /health require a valid token
 @app.middleware("http")
-async def verify_bearer(request: Request, call_next: object) -> Response:
+async def verify_bearer(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
     # B3 — whitelist preflight OPTIONS pour ne pas casser CORS.
     # Le middleware CORS répond aux preflights via add_middleware ci-dessous,
     # mais les middlewares HTTP custom (comme celui-ci) tournent AVANT le
     # middleware CORS dans l'ordre LIFO, donc on shortcut explicitement ici.
     if request.method == "OPTIONS":
-        return await call_next(request)  # type: ignore[operator]
+        return await call_next(request)
 
     if request.url.path == "/health":
-        return await call_next(request)  # type: ignore[operator]
+        return await call_next(request)
+
+    # Dev-only bypass : Swagger UI / OpenAPI / ReDoc accessibles sans Bearer
+    # tant que ENGINE_ENV != "production". Fermé automatiquement en prod.
+    if os.getenv("ENGINE_ENV", "dev").lower() != "production" and request.url.path in (
+        "/docs", "/redoc", "/openapi.json",
+    ):
+        return await call_next(request)
 
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
@@ -144,7 +155,7 @@ async def verify_bearer(request: Request, call_next: object) -> Response:
     if not (token and hmac.compare_digest(token, settings.CREWAI_ENGINE_AUTH_TOKEN)):
         return Response(content="Unauthorized", status_code=401)
 
-    return await call_next(request)  # type: ignore[operator]
+    return await call_next(request)
 
 
 # CORS middleware ajouté APRES verify_bearer pour qu'il soit le PREMIER appelé
