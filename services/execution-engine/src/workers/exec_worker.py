@@ -92,23 +92,27 @@ class ExecutionWorker:
             "Execution worker starting",
             extra={"worker_id": self.worker_id, "dry_run": self.dry_run},
         )
-        while not self.stopping:
-            try:
-                processed = 0
-                for _ in range(self.batch_size):
-                    row = await self.repo.claim_pending_order(self.worker_id)
-                    if row is None:
-                        break
-                    await self._dispatch(row)
-                    processed += 1
-                if processed == 0:
+        try:
+            while not self.stopping:
+                try:
+                    processed = 0
+                    for _ in range(self.batch_size):
+                        row = await self.repo.claim_pending_order(self.worker_id)
+                        if row is None:
+                            break
+                        await self._dispatch(row)
+                        processed += 1
+                    if processed == 0:
+                        await asyncio.sleep(self.poll_interval)
+                except asyncio.CancelledError:
+                    logger.info("Execution worker cancelled")
+                    break
+                except Exception:
+                    logger.exception("Execution worker loop error")
                     await asyncio.sleep(self.poll_interval)
-            except asyncio.CancelledError:
-                logger.info("Execution worker cancelled")
-                break
-            except Exception:
-                logger.exception("Execution worker loop error")
-                await asyncio.sleep(self.poll_interval)
+        finally:
+            for a in self.adapters.values():
+                await a.aclose()
 
     async def _dispatch(self, row: dict[str, Any]) -> None:
         outbox_id: UUID = row["id"]

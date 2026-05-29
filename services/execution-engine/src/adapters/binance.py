@@ -32,6 +32,17 @@ class BinanceAdapter:
         self.api_secret = api_secret
         self.dry_run = dry_run
         self.timeout = timeout_seconds
+        self._client: httpx.AsyncClient | None = None
+
+    def _http(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self.timeout)
+        return self._client
+
+    async def aclose(self) -> None:
+        if self._client is not None and not self._client.is_closed:
+            await self._client.aclose()
+        self._client = None
 
     async def submit_order(self, order: dict[str, Any]) -> ExecutionAttempt:
         start = time.perf_counter()
@@ -51,10 +62,10 @@ class BinanceAdapter:
             ).hexdigest()
             full_qs = f"{qs}&signature={sig}"
             headers = {"X-MBX-APIKEY": self.api_key}
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.post(
-                    f"{self.api_url}/fapi/v1/order?{full_qs}", headers=headers
-                )
+            client = self._http()
+            resp = await client.post(
+                f"{self.api_url}/fapi/v1/order?{full_qs}", headers=headers
+            )
             latency = int((time.perf_counter() - start) * 1000)
             if resp.status_code >= 400:
                 return ExecutionAttempt(

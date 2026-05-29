@@ -71,6 +71,17 @@ class HyperliquidAdapter:
         self._coin_index_fetched_at: float = 0.0
         # Local nonce monotonicity. HL accepts ms epoch as nonce.
         self._last_nonce: int = 0
+        self._client: httpx.AsyncClient | None = None
+
+    def _http(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self.timeout)
+        return self._client
+
+    async def aclose(self) -> None:
+        if self._client is not None and not self._client.is_closed:
+            await self._client.aclose()
+        self._client = None
 
     # ---------- Public surface ----------
 
@@ -116,9 +127,9 @@ class HyperliquidAdapter:
         try:
             action = {"type": "scheduleCancel", "time": int(time.time() * 1000) + self.deadman_seconds * 1000}
             payload = await self._sign_and_envelope(action)
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                r = await client.post(f"{self.api_url}/exchange", json=payload)
-                return r.status_code == 200 and r.json().get("status") == "ok"
+            client = self._http()
+            r = await client.post(f"{self.api_url}/exchange", json=payload)
+            return r.status_code == 200 and r.json().get("status") == "ok"
         except Exception:
             logger.exception("HL scheduleCancel failed")
             return False
@@ -129,10 +140,10 @@ class HyperliquidAdapter:
             return []
         url = f"{self.api_url}/info"
         body = {"type": "clearinghouseState", "user": self.account_address}
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            r = await client.post(url, json=body)
-            r.raise_for_status()
-            data = r.json()
+        client = self._http()
+        r = await client.post(url, json=body)
+        r.raise_for_status()
+        data = r.json()
         positions: list[dict[str, Any]] = []
         for p in data.get("assetPositions", []):
             pos = p.get("position") or {}
@@ -157,10 +168,10 @@ class HyperliquidAdapter:
         if self._coin_index_cache and time.time() - self._coin_index_fetched_at < 3600:
             return
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                r = await client.post(f"{self.api_url}/info", json={"type": "meta"})
-                r.raise_for_status()
-                meta = r.json()
+            client = self._http()
+            r = await client.post(f"{self.api_url}/info", json={"type": "meta"})
+            r.raise_for_status()
+            meta = r.json()
             cache: dict[str, int] = {}
             for i, asset in enumerate(meta.get("universe", [])):
                 name = asset.get("name") or ""
@@ -280,8 +291,8 @@ class HyperliquidAdapter:
         ):
             with attempt:
                 attempts += 1
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.post(f"{self.api_url}/exchange", json=payload)
+                client = self._http()
+                resp = await client.post(f"{self.api_url}/exchange", json=payload)
                 latency_ms = int((time.perf_counter() - start) * 1000)
                 if resp.status_code == 200:
                     body = resp.json()

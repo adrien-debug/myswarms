@@ -141,8 +141,41 @@ class RiskWorker:
         # rejected as stale rather than silently accepted).
         t0 = now_utc()
 
-        # Portfolio + profile.
-        port_row = await self.repo.fetch_latest_portfolio(tenant_id)
+        # Symbol depends only on the (already-validated) spec — no I/O. Compute it
+        # up-front so the market/orderbook fetches can be parallelised below.
+        # Symbol must match what market-data-service ingests for this (venue, asset).
+        symbol = _symbol_for(venue=spec.venue, asset=spec.asset, quote=spec.quote)
+
+        # Parallelise the independent DB reads. Each repo fetch_* acquires its OWN
+        # connection from the asyncpg pool (min=2/max=10), so gather over 6 reads is
+        # safe — no shared connection, no pool exhaustion. This only parallelises I/O;
+        # the short-circuit logic below is applied in the SAME order as before, so the
+        # decision and the reason-code priority are byte-for-byte identical.
+        # NOTE fail-safe (vs the old sequential code): all 6 reads now always execute.
+        # If a fetch raises (DB degraded), gather propagates it (no return_exceptions)
+        # → _process → mark_job_failed (retry/poison). The old code could short-circuit
+        # to a portfolio_stale REJECT before reaching the failing read; the new code
+        # may instead surface job-failed. Both outcomes are NO-TRADE — this is strictly
+        # a fail-safe divergence (REJECT → job-failed), never fail-open.
+        (
+            port_row,
+            profile_row,
+            ks,
+            mkt_row,
+            book_row,
+            outbox_depth,
+        ) = await asyncio.gather(
+            self.repo.fetch_latest_portfolio(tenant_id),
+            self.repo.fetch_active_risk_profile(tenant_id),
+            self.repo.is_blocked(tenant_id, spec.venue),
+            self.repo.fetch_latest_market_snapshot(
+                venue=spec.venue, symbol=symbol, timeframe="1m"
+            ),
+            self.repo.fetch_latest_orderbook(venue=spec.venue, symbol=symbol),
+            self.repo.outbox_pending_count(tenant_id),
+        )
+
+        # Portfolio + profile. Court-circuits preserved in original priority order.
         if port_row is None:
             await self._write_short_circuit_reject(
                 tenant_id=tenant_id,
@@ -154,34 +187,22 @@ class RiskWorker:
         portfolio_age = (t0 - port_row["taken_at"]).total_seconds()
         portfolio = PortfolioSnapshot.model_validate(port_row["payload"])
 
-        profile_row = await self.repo.fetch_active_risk_profile(tenant_id)
         if profile_row is None:
             raise RuntimeError(f"No active risk profile for tenant {tenant_id}")
         profile = TenantRiskProfile.model_validate(profile_row)
 
-        # Kill switches (global / tenant / venue).
-        ks = await self.repo.is_blocked(tenant_id, spec.venue)
-
         # Market context — REAL data from hedge_market_snapshots. No fallback.
-        # Symbol must match what market-data-service ingests for this (venue, asset).
-        symbol = _symbol_for(venue=spec.venue, asset=spec.asset, quote=spec.quote)
-        mkt_row = await self.repo.fetch_latest_market_snapshot(
-            venue=spec.venue, symbol=symbol, timeframe="1m"
-        )
         market_ctx: MarketContext | None = None
         if mkt_row is not None:
             market_age = (t0 - mkt_row["taken_at"]).total_seconds()
             market_ctx = build_context(mkt_row, market_age)
 
         # Orderbook (top 20). Slippage estimation will be skipped if missing.
-        book_row = await self.repo.fetch_latest_orderbook(venue=spec.venue, symbol=symbol)
         side = "buy" if spec.direction == "long" else "sell"
         ob_levels: list[list[float]] | None = None
         if book_row is not None:
             book_payload = book_row["payload"]
             ob_levels = book_payload.get("asks") if side == "buy" else book_payload.get("bids")
-
-        outbox_depth = await self.repo.outbox_pending_count(tenant_id)
 
         decision = evaluate(
             spec=spec,

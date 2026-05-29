@@ -47,21 +47,24 @@ class DeadmanWorker:
             "Dead-man worker starting",
             extra={"interval": self.interval, "timeout": self.deadman_seconds},
         )
-        while not self.stopping:
-            try:
-                ok = await self.adapter.schedule_deadman()
-                if ok:
-                    self.consecutive_failures = 0
-                else:
+        try:
+            while not self.stopping:
+                try:
+                    ok = await self.adapter.schedule_deadman()
+                    if ok:
+                        self.consecutive_failures = 0
+                    else:
+                        self.consecutive_failures += 1
+                        if self.consecutive_failures >= 3:
+                            logger.critical(
+                                "Dead-man heartbeat failing %d cycles in a row — venue may not auto-cancel",
+                                self.consecutive_failures,
+                            )
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    logger.exception("Dead-man heartbeat failed")
                     self.consecutive_failures += 1
-                    if self.consecutive_failures >= 3:
-                        logger.critical(
-                            "Dead-man heartbeat failing %d cycles in a row — venue may not auto-cancel",
-                            self.consecutive_failures,
-                        )
-            except asyncio.CancelledError:
-                break
-            except Exception:
-                logger.exception("Dead-man heartbeat failed")
-                self.consecutive_failures += 1
-            await asyncio.sleep(self.interval)
+                await asyncio.sleep(self.interval)
+        finally:
+            await self.adapter.aclose()

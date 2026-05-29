@@ -58,14 +58,18 @@ class ReconcileWorker:
 
     async def run_forever(self) -> None:
         logger.info("Reconcile worker starting", extra={"interval": self.interval})
-        while not self.stopping:
-            try:
-                await self._cycle()
-            except asyncio.CancelledError:
-                break
-            except Exception:
-                logger.exception("Reconcile cycle error")
-            await asyncio.sleep(self.interval)
+        try:
+            while not self.stopping:
+                try:
+                    await self._cycle()
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    logger.exception("Reconcile cycle error")
+                await asyncio.sleep(self.interval)
+        finally:
+            for a in self.adapters.values():
+                await a.aclose()
 
     async def _cycle(self) -> None:
         tenants = await self._list_active_tenants()
