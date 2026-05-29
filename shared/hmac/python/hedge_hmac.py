@@ -19,7 +19,10 @@ import hmac
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 def canonical_json(payload: Mapping[str, Any]) -> bytes:
@@ -52,6 +55,56 @@ def _json_default(obj: Any) -> Any:
 def payload_hash_hex(payload: Mapping[str, Any]) -> str:
     """sha256 of canonical payload, hex-encoded."""
     return hashlib.sha256(canonical_json(payload)).hexdigest()
+
+
+def compute_audit_row_hash(
+    *,
+    chain_seq: int,
+    prev_hash: str | None,
+    tenant_id: UUID | None,
+    actor_kind: str,
+    event_type: str,
+    severity: str,
+    source_service: str | None,
+    request_id: UUID | None,
+    details: Mapping[str, Any],
+) -> str:
+    """row_hash canonique pour hedge_audit_log — CHAÎNE GLOBALE.
+
+    Une seule séquence couvre TOUS les tenants + les events globaux (tenant=NULL)
+    intercalés. La chaîne est ordonnée par `chain_seq` (colonne bigint monotone,
+    cf. migration 0045_hedge_audit_log_chain_seq.sql), PAS par created_at/id.
+
+    Payload canonique (clés triées + datetime/UUID/Decimal gérés par
+    canonical_json) :
+      {
+        "chain_seq": chain_seq,                            # int monotone, jamais None
+        "prev_hash": prev_hash or "",                      # "" pour la ligne genesis
+        "tenant_id": str(tenant_id) if tenant_id else "",  # "" pour event global
+        "actor_kind": actor_kind,
+        "event_type": event_type,
+        "severity": severity,
+        "source_service": source_service or "",
+        "request_id": str(request_id) if request_id else "",
+        "details": details,                                # dict canonicalisé par canonical_json
+      }
+    Retour : payload_hash_hex(payload)  (= sha256(canonical_json(payload)).hexdigest()).
+
+    Importé par execution-engine (repo.py, reconcile_worker.py) via le pattern
+    sys.path (sys.path.append('/app/shared/hmac/python') + '../../shared/hmac/python').
+    """
+    payload: dict[str, Any] = {
+        "chain_seq": chain_seq,
+        "prev_hash": prev_hash or "",
+        "tenant_id": str(tenant_id) if tenant_id else "",
+        "actor_kind": actor_kind,
+        "event_type": event_type,
+        "severity": severity,
+        "source_service": source_service or "",
+        "request_id": str(request_id) if request_id else "",
+        "details": details,
+    }
+    return payload_hash_hex(payload)
 
 
 def sign(payload: Mapping[str, Any], key: bytes, key_id: str = "v1") -> str:

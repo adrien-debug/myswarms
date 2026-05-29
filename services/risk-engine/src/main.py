@@ -153,6 +153,7 @@ class KillSwitchRequest(BaseModel):
     tenant_id: str | None = None
     venue: str | None = None
     reason: str | None = None
+    force: bool = False              # /resume only: also clear auto-armed (reason 'auto:%') switches
 
     @model_validator(mode="after")
     def _check_shape(self) -> "KillSwitchRequest":
@@ -196,15 +197,21 @@ async def pause(req: KillSwitchRequest = Body(default=KillSwitchRequest())) -> d
 
 @app.post("/resume")
 async def resume(req: KillSwitchRequest = Body(default=KillSwitchRequest())) -> dict:
-    """Clear active kill switches (default: clears ALL active). No auth by design."""
+    """Clear active kill switches. No auth by design.
+
+    By default, switches AUTO-ARMED by the reconcile worker (reason 'auto:%',
+    raised on a venue/DB position divergence) are NOT cleared — they require a
+    human investigation. Pass force=true to clear them too."""
     tid = UUID(req.tenant_id) if req.tenant_id else None
-    # If body is fully default (global, no tenant/venue), clear everything.
+    # If body is fully default (global, no tenant/venue), clear everything in scope.
     if req.scope == "global" and tid is None and req.venue is None:
-        cleared = await app.state.repo.clear_kill_switches()
+        cleared = await app.state.repo.clear_kill_switches(exclude_auto=not req.force)
     else:
-        cleared = await app.state.repo.clear_kill_switches(scope=req.scope, tenant_id=tid, venue=req.venue)
-    logger.warning("KILL SWITCHES CLEARED count=%d", cleared)
-    return {"status": "resumed", "cleared": cleared}
+        cleared = await app.state.repo.clear_kill_switches(
+            scope=req.scope, tenant_id=tid, venue=req.venue, exclude_auto=not req.force
+        )
+    logger.warning("KILL SWITCHES CLEARED count=%d force=%s", cleared, req.force)
+    return {"status": "resumed", "cleared": cleared, "force": req.force}
 
 
 @app.get("/kill/status")

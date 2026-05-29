@@ -306,6 +306,11 @@ class Repo:
     # Map: table → colonne timestamp à utiliser pour le tri prev_hash chain.
     # (les tables HEDGE n'ont pas toutes `created_at` ; certaines ont `computed_at`,
     # `taken_at`, `submitted_at` selon leur sémantique métier).
+    # NOTE: hedge_audit_log est ABSENTE volontairement — sa chaîne est GLOBALE
+    # (ordonnée par chain_seq sous pg_advisory_xact_lock), écrite exclusivement
+    # par execution-engine/repo.py + reconcile_worker.py. Un fetch tail per-tenant
+    # trié par created_at (ce que ferait cette méthode) contournerait l'advisory
+    # lock et forkerait la chaîne → interdit (cf. garde-fou ci-dessous).
     _TIMESTAMP_COL = {
         "hedge_strategy_requests": "created_at",
         "hedge_swarm_signals": "created_at",
@@ -318,11 +323,15 @@ class Repo:
         "hedge_market_snapshots": "taken_at",
         "hedge_orderbook_snapshots": "taken_at",
         "hedge_position_reconciliations": "cycle_at",
-        "hedge_audit_log": "created_at",
     }
 
     async def prev_hash_for_table(self, table: str, tenant_id: UUID) -> str | None:
         """Fetch latest row_hash for hash chain (per tenant scope)."""
+        if table == "hedge_audit_log":
+            raise RuntimeError(
+                "hedge_audit_log uses a GLOBAL chain_seq chain (advisory-locked) — "
+                "never fetch its prev_hash per-tenant here; write via execution-engine."
+            )
         ts_col = self._TIMESTAMP_COL.get(table, "created_at")
         async with self._pool.acquire() as conn:
             return await conn.fetchval(
@@ -367,10 +376,14 @@ class Repo:
 
     async def clear_kill_switches(
         self, *, scope: str | None = None, tenant_id: UUID | None = None,
-        venue: str | None = None,
+        venue: str | None = None, exclude_auto: bool = True,
     ) -> int:
-        """Clear (deactivate) active kill switches. With no args, clears ALL
-        active switches. Returns the number cleared."""
+        """Clear (deactivate) active kill switches. Returns the number cleared.
+
+        exclude_auto=True (default) refuses to clear switches auto-armed by the
+        reconcile worker (reason LIKE 'auto:%') — those protect against a
+        venue/DB position divergence and must be lifted only after a human
+        investigation. Pass exclude_auto=False (force) to clear them too."""
         clauses = ["active = true"]
         params: list = []
         if scope is not None:
@@ -379,6 +392,8 @@ class Repo:
             params.append(tenant_id); clauses.append(f"tenant_id = ${len(params)}")
         if venue is not None:
             params.append(venue); clauses.append(f"venue = ${len(params)}")
+        if exclude_auto:
+            clauses.append("(reason is null or reason not like 'auto:%')")
         where = " and ".join(clauses)
         async with self._pool.acquire() as conn:
             res = await conn.execute(

@@ -32,6 +32,7 @@ import asyncpg
 
 from ..adapters import HyperliquidAdapter, VenueAdapter
 from ..config import settings
+from ..repo import _AUDIT_CHAIN_LOCK, compute_audit_row_hash
 
 logger = logging.getLogger("execution-engine.reconcile")
 
@@ -156,53 +157,72 @@ class ReconcileWorker:
             return payload.get("positions", []) or []
 
     async def _auto_arm_kill_switch(self, *, tenant_id: UUID, reason: str) -> UUID | None:
+        # CHAÎNE GLOBALE : tout dans UNE transaction. Advisory xact lock global
+        # (même id que repo.signature_failure_audit) → sérialise TOUS les writers
+        # de hedge_audit_log, empêche les forks de chaîne au scale-out. fetch tail
+        # GLOBAL (ORDER BY chain_seq DESC, aucun WHERE tenant_id), chain_seq =
+        # prev_seq + 1, row_hash via compute_audit_row_hash partagé.
+        audit_details = {"reason": reason}
         async with self.pool.acquire() as conn:
-            # Clear existing tenant-level switches.
-            await conn.execute(
-                """
-                update hedge_kill_switches
-                set active=false, cleared_at=now()
-                where scope='tenant' and tenant_id=$1 and active=true
-                """,
-                tenant_id,
-            )
-            row = await conn.fetchrow(
-                """
-                insert into hedge_kill_switches (scope, tenant_id, active, reason)
-                values ('tenant', $1, true, $2)
-                returning id
-                """,
-                tenant_id,
-                f"auto:{reason}",
-            )
-            # Hash chain: fetch prev row_hash for this tenant, compute deterministic row_hash.
-            prev_hash = await conn.fetchval(
-                """
-                select row_hash from hedge_audit_log
-                where tenant_id = $1
-                order by created_at desc nulls last
-                limit 1
-                """,
-                tenant_id,
-            )
-            audit_details = {"reason": reason}
-            canonical = json.dumps(
-                {"prev_hash": prev_hash or "", "event_type": "kill_switch.auto_set",
-                 "tenant_id": str(tenant_id), "details": audit_details},
-                sort_keys=True, separators=(",", ":"),
-            ).encode()
-            row_hash = sha256(canonical).hexdigest()
-            await conn.execute(
-                """
-                insert into hedge_audit_log (tenant_id, actor_kind, event_type, severity, details, source_service, prev_hash, row_hash)
-                values ($1, 'system', 'kill_switch.auto_set', 'critical', $2::jsonb, 'execution-engine', $3, $4)
-                """,
-                tenant_id,
-                json.dumps(audit_details),
-                prev_hash,
-                row_hash,
-            )
-            return row["id"] if row else None
+            async with conn.transaction():
+                # Clear existing tenant-level switches.
+                await conn.execute(
+                    """
+                    update hedge_kill_switches
+                    set active=false, cleared_at=now()
+                    where scope='tenant' and tenant_id=$1 and active=true
+                    """,
+                    tenant_id,
+                )
+                row = await conn.fetchrow(
+                    """
+                    insert into hedge_kill_switches (scope, tenant_id, active, reason)
+                    values ('tenant', $1, true, $2)
+                    returning id
+                    """,
+                    tenant_id,
+                    f"auto:{reason}",
+                )
+                await conn.execute(
+                    "select pg_advisory_xact_lock(hashtext($1))",
+                    _AUDIT_CHAIN_LOCK,
+                )
+                tail = await conn.fetchrow(
+                    """
+                    select chain_seq, row_hash from public.hedge_audit_log
+                    order by chain_seq desc
+                    limit 1
+                    for update
+                    """
+                )
+                prev_seq = tail["chain_seq"] if tail else 0
+                prev_hash = tail["row_hash"] if tail else None
+                chain_seq = prev_seq + 1
+                row_hash = compute_audit_row_hash(
+                    chain_seq=chain_seq,
+                    prev_hash=prev_hash,
+                    tenant_id=tenant_id,
+                    actor_kind="system",
+                    event_type="kill_switch.auto_set",
+                    severity="critical",
+                    source_service="execution-engine",
+                    request_id=None,
+                    details=audit_details,
+                )
+                await conn.execute(
+                    """
+                    insert into hedge_audit_log (
+                        chain_seq, tenant_id, actor_kind, event_type, severity, details,
+                        source_service, prev_hash, row_hash
+                    ) values ($1, $2, 'system', 'kill_switch.auto_set', 'critical', $3::jsonb, 'execution-engine', $4, $5)
+                    """,
+                    chain_seq,
+                    tenant_id,
+                    json.dumps(audit_details),
+                    prev_hash,
+                    row_hash,
+                )
+                return row["id"] if row else None
 
     async def _emit_alert(
         self,
