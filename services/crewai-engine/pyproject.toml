@@ -9,19 +9,19 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "pydantic-settings>=2.6",
-    "langfuse>=3.0",
+    "langfuse>=3.0,<5",
     # openlit excluded: conflicts with crewai>=1.14.4 on opentelemetry-sdk pinning.
     # Install separately in a venv that does not require crewai, or wait for upstream fix.
     # "openlit>=1.30",
     "supabase>=2.10",
-    "anthropic>=0.40",
+    "anthropic>=0.40,<1",
     "openai>=1.55",
     "httpx>=0.27",
-    "composio>=0.13.0",
-    "composio-crewai>=0.13.0",
+    "composio>=0.13.0,<0.14",
+    "composio-crewai>=0.13.0,<0.14",
     "apscheduler>=3.10,<4",
     "pytz>=2024",
-    "litellm>=1.85.0",
+    "litellm>=1.85.0,<2",
     "sentry-sdk[fastapi]>=2.0",
 ]
 
